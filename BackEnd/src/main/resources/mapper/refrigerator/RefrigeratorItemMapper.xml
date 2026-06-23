@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.yumyum.domain.refrigerator.dao.RefrigeratorItemDao">
+    <insert id="createDefaultRefrigeratorIfAbsent">
+        INSERT INTO refrigerators (user_id, refrigerator_name)
+        SELECT #{userId}, '내 냉장고'
+        WHERE NOT EXISTS (SELECT 1 FROM refrigerators WHERE user_id = #{userId})
+    </insert>
+
+    <select id="findRefrigeratorIdByUserId" resultType="long">
+        SELECT refrigerator_id FROM refrigerators WHERE user_id = #{userId} ORDER BY refrigerator_id LIMIT 1
+    </select>
+
+    <insert id="insertManual" useGeneratedKeys="true" keyProperty="id" keyColumn="item_id">
+        INSERT INTO refrigerator_items (
+            refrigerator_id, food_code, item_name, category, quantity, quantity_unit,
+            expiration_date, storage_location, registration_type, memo
+        ) VALUES (
+            #{refrigeratorId}, NULL, #{name}, #{category}, #{quantity}, #{unit},
+            #{expirationDate}, #{storageLocation}, 'MANUAL', #{memo}
+        )
+    </insert>
+
+    <select id="findById" resultType="com.ssafy.yumyum.domain.refrigerator.entity.RefrigeratorItem">
+        SELECT item_id AS id, refrigerator_id AS refrigeratorId, item_name AS name, category, quantity,
+               quantity_unit AS unit, expiration_date AS expirationDate,
+               storage_location AS storageLocation, memo, created_at AS createdAt
+        FROM refrigerator_items
+        WHERE item_id = #{id}
+    </select>
+
+    <sql id="itemColumns">
+        i.item_id AS id, i.refrigerator_id AS refrigeratorId, i.item_name AS name,
+        i.category, i.quantity, i.quantity_unit AS unit,
+        i.expiration_date AS expirationDate, i.storage_location AS storageLocation,
+        i.memo, i.created_at AS createdAt
+    </sql>
+
+    <select id="findAllByUserId" resultType="com.ssafy.yumyum.domain.refrigerator.entity.RefrigeratorItem">
+        SELECT <include refid="itemColumns"/>
+        FROM refrigerator_items i
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        WHERE r.user_id = #{userId}
+        ORDER BY i.created_at DESC, i.item_id DESC
+    </select>
+
+    <select id="findByIdAndUserId" resultType="com.ssafy.yumyum.domain.refrigerator.entity.RefrigeratorItem">
+        SELECT <include refid="itemColumns"/>
+        FROM refrigerator_items i
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        WHERE i.item_id = #{id} AND r.user_id = #{userId}
+    </select>
+
+    <update id="updateByIdAndUserId">
+        UPDATE refrigerator_items i
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        SET i.item_name = #{item.name}, i.category = #{item.category},
+            i.quantity = #{item.quantity}, i.quantity_unit = #{item.unit},
+            i.expiration_date = #{item.expirationDate},
+            i.storage_location = #{item.storageLocation}, i.memo = #{item.memo}
+        WHERE i.item_id = #{item.id} AND r.user_id = #{userId}
+    </update>
+
+    <delete id="deleteLogsByIdAndUserId">
+        DELETE l FROM refrigerator_item_logs l
+        JOIN refrigerator_items i ON i.item_id = l.item_id
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        WHERE i.item_id = #{id} AND r.user_id = #{userId}
+    </delete>
+
+    <delete id="deleteByIdAndUserId">
+        DELETE i FROM refrigerator_items i
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        WHERE i.item_id = #{id} AND r.user_id = #{userId}
+    </delete>
+</mapper>
