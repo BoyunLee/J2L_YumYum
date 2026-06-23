@@ -1,7 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { useAuthStore } from './auth'
+import { requestRecipeRecommendations } from '../api/recipeRecommendation'
 
-export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications'
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+
+export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
 export type Category = 'dairy' | 'meat' | 'vegetable' | 'fruit' | 'etc'
 export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory'
 
@@ -25,6 +29,32 @@ export interface InventoryForm {
   expiryDate: string
   location: string
   memo: string
+}
+
+interface ApiInventoryItem {
+  id: number
+  name: string
+  category: string
+  quantity: number
+  unit: string
+  expirationDate: string
+  storageLocation: string
+  memo: string | null
+  addedDate: string
+}
+
+interface ApiLatestRecipeRecommendations {
+  mealLogId: number | null
+  recipes: Array<Omit<Recipe, 'gradient'>>
+}
+
+interface ApiNotification {
+  id: number
+  type: 'expiry' | 'expired'
+  title: string
+  message: string
+  createdAt: string
+  read: boolean
 }
 
 export interface Recipe {
@@ -52,10 +82,10 @@ export interface NotificationItem {
   read: boolean
 }
 
-const today = new Date('2026-06-05T00:00:00+09:00')
-
 const daysBetween = (date: string) => {
-  const target = new Date(`${date}T00:00:00+09:00`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(`${date}T00:00:00`)
   return Math.ceil((target.getTime() - today.getTime()) / 86_400_000)
 }
 
@@ -71,93 +101,55 @@ export const categories: { value: Category | 'all'; label: string }[] = [
 export const units = ['개', 'g', 'kg', 'ml', 'L']
 export const locations = ['냉장실', '냉동실', '실온']
 
+const categoryMap: Record<Category, string> = {
+  dairy: 'DAIRY', meat: 'MEAT', vegetable: 'VEGETABLE', fruit: 'FRUIT', etc: 'ETC',
+}
+const locationMap: Record<string, string> = {
+  냉장실: 'REFRIGERATOR', 냉동실: 'FREEZER', 실온: 'ROOM_TEMPERATURE',
+}
+const locationLabels: Record<string, string> = {
+  REFRIGERATOR: '냉장실', FREEZER: '냉동실', ROOM_TEMPERATURE: '실온',
+}
+const recipeGradients = ['yellow', 'red', 'green', 'lime']
+
+const toRequestBody = (form: InventoryForm) => ({
+  name: form.name.trim(),
+  category: categoryMap[form.category],
+  quantity: Number(form.quantity),
+  unit: form.unit,
+  expirationDate: form.expiryDate,
+  storageLocation: locationMap[form.location],
+  memo: form.memo.trim(),
+})
+
+const toInventoryItem = (item: ApiInventoryItem): InventoryItem => ({
+  id: item.id,
+  name: item.name,
+  category: item.category.toLowerCase() as Category,
+  quantity: Number(item.quantity),
+  unit: item.unit,
+  expiryDate: item.expirationDate,
+  location: locationLabels[item.storageLocation],
+  addedDate: item.addedDate,
+  memo: item.memo ?? '',
+})
+
 export const useFridgeStore = defineStore('fridge', () => {
+  const auth = useAuthStore()
   const currentView = ref<ViewName>('dashboard')
   const selectedInventoryId = ref<number | null>(null)
   const selectedRecipeId = ref<number | null>(null)
   const favoriteRecipeIds = ref<number[]>([])
 
-  const inventory = ref<InventoryItem[]>([
-    { id: 1, name: '우유', category: 'dairy', quantity: 2, unit: '개', expiryDate: '2026-06-08', location: '냉장실', addedDate: '2026-06-01', memo: '세일할 때 구매함' },
-    { id: 2, name: '계란', category: 'dairy', quantity: 10, unit: '개', expiryDate: '2026-06-14', location: '냉장실', addedDate: '2026-06-02', memo: '' },
-    { id: 3, name: '닭고기', category: 'meat', quantity: 500, unit: 'g', expiryDate: '2026-06-06', location: '냉동실', addedDate: '2026-06-04', memo: '소분 보관' },
-    { id: 4, name: '토마토', category: 'vegetable', quantity: 5, unit: '개', expiryDate: '2026-06-07', location: '냉장실', addedDate: '2026-06-03', memo: '' },
-    { id: 5, name: '사과', category: 'fruit', quantity: 3, unit: '개', expiryDate: '2026-06-11', location: '냉장실', addedDate: '2026-06-01', memo: '' },
-    { id: 6, name: '치즈', category: 'dairy', quantity: 1, unit: '개', expiryDate: '2026-06-19', location: '냉장실', addedDate: '2026-05-30', memo: '' },
-    { id: 7, name: '요구르트', category: 'dairy', quantity: 4, unit: '개', expiryDate: '2026-06-03', location: '냉장실', addedDate: '2026-05-29', memo: '만료 확인 필요' },
-    { id: 8, name: '양배추', category: 'vegetable', quantity: 1, unit: '개', expiryDate: '2026-06-12', location: '냉장실', addedDate: '2026-06-02', memo: '' },
-  ])
+  const inventory = ref<InventoryItem[]>([])
+  const isRecommendingRecipes = ref(false)
+  const isLoadingSavedRecipes = ref(false)
+  const recipeRecommendationError = ref('')
+  const lastRecipeInventoryKey = ref('')
+  const hasRequestedRecipes = ref(false)
+  const recipes = ref<Recipe[]>([])
 
-  const recipes = ref<Recipe[]>([
-    {
-      id: 1,
-      name: '치즈 오믈렛',
-      description: '부드럽고 고소한 치즈 오믈렛',
-      matchRate: 100,
-      cookTime: 15,
-      servings: 2,
-      difficulty: '쉬움',
-      calories: 320,
-      gradient: 'yellow',
-      availableIngredients: ['계란', '치즈', '우유'],
-      missingIngredients: [],
-      steps: ['계란과 우유를 넣고 잘 섞어주세요.', '팬에 버터를 두르고 중불로 예열해주세요.', '계란물을 붓고 가장자리가 익으면 천천히 저어주세요.', '치즈를 올리고 반으로 접어 1분간 익혀주세요.'],
-      tips: ['중불보다 낮은 온도에서 익히면 더 부드러워요', '치즈는 계란이 다 익기 전에 넣어야 잘 녹아요'],
-    },
-    {
-      id: 2,
-      name: '토마토 카프레제',
-      description: '신선한 토마토와 치즈를 활용한 샐러드',
-      matchRate: 80,
-      cookTime: 10,
-      servings: 2,
-      difficulty: '쉬움',
-      calories: 210,
-      gradient: 'red',
-      availableIngredients: ['토마토', '치즈'],
-      missingIngredients: ['바질', '올리브오일'],
-      steps: ['토마토와 치즈를 먹기 좋게 썰어주세요.', '접시에 번갈아 올린 뒤 간을 맞춰주세요.', '올리브오일과 바질을 더해 마무리하세요.'],
-      tips: ['토마토는 조리 직전에 썰면 수분감이 좋아요'],
-    },
-    {
-      id: 3,
-      name: '닭고기 야채볶음',
-      description: '냉장고 야채와 닭고기로 만드는 든든한 볶음',
-      matchRate: 75,
-      cookTime: 25,
-      servings: 3,
-      difficulty: '보통',
-      calories: 410,
-      gradient: 'green',
-      availableIngredients: ['닭고기', '양배추', '토마토'],
-      missingIngredients: ['간장', '참기름'],
-      steps: ['닭고기를 한입 크기로 썰어주세요.', '팬에 닭고기를 먼저 익힌 뒤 야채를 넣어주세요.', '간장과 참기름으로 간을 맞춰 볶아주세요.'],
-      tips: ['닭고기는 물기를 제거하면 더 잘 익고 식감이 좋아요'],
-    },
-    {
-      id: 4,
-      name: '사과 샐러드',
-      description: '상큼하고 가벼운 과일 샐러드',
-      matchRate: 70,
-      cookTime: 10,
-      servings: 2,
-      difficulty: '쉬움',
-      calories: 180,
-      gradient: 'lime',
-      availableIngredients: ['사과'],
-      missingIngredients: ['양상추', '견과류', '드레싱'],
-      steps: ['사과를 얇게 썰어주세요.', '양상추와 견과류를 곁들여주세요.', '드레싱을 넣고 가볍게 섞어주세요.'],
-      tips: ['사과에 레몬즙을 살짝 뿌리면 갈변을 줄일 수 있어요'],
-    },
-  ])
-
-  const notifications = ref<NotificationItem[]>([
-    { id: 1, type: 'expired', title: '유통기한 만료', message: '요구르트의 유통기한이 지났습니다. 폐기를 권장합니다.', time: '2026-06-05 09:00', read: false },
-    { id: 2, type: 'expiry', title: '유통기한 임박', message: '닭고기가 1일 후 유통기한이 만료됩니다.', time: '2026-06-05 08:30', read: false },
-    { id: 3, type: 'expiry', title: '유통기한 임박', message: '토마토가 2일 후 유통기한이 만료됩니다.', time: '2026-06-05 08:30', read: false },
-    { id: 4, type: 'recipe', title: '새로운 레시피 추천', message: "현재 보유한 재료로 '치즈 오믈렛'을 만들 수 있어요.", time: '2026-06-04 18:00', read: true },
-    { id: 5, type: 'inventory', title: '재고 추가 완료', message: '닭고기가 냉장고에 추가되었습니다.', time: '2026-06-04 12:10', read: true },
-  ])
+  const notifications = ref<NotificationItem[]>([])
 
   const inventoryWithStatus = computed(() =>
     inventory.value.map((item) => ({ ...item, daysLeft: daysBetween(item.expiryDate) })),
@@ -174,6 +166,25 @@ export const useFridgeStore = defineStore('fridge', () => {
   const selectedInventory = computed(() => inventoryWithStatus.value.find((item) => item.id === selectedInventoryId.value) ?? null)
   const selectedRecipe = computed(() => recipes.value.find((recipe) => recipe.id === selectedRecipeId.value) ?? recipes.value[0])
 
+  async function apiRequest<T>(path: string, options: RequestInit = {}) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${auth.accessToken}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers,
+      },
+    })
+    const contentType = response.headers.get('content-type') ?? ''
+    const body = contentType.includes('application/json') ? await response.json() : null
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+      if (response.status === 403) throw new Error('재고를 관리할 권한이 없습니다.')
+      throw new Error(body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
+    }
+    return body?.data as T
+  }
+
   function go(view: ViewName) {
     currentView.value = view
   }
@@ -188,61 +199,153 @@ export const useFridgeStore = defineStore('fridge', () => {
     currentView.value = 'recipeDetail'
   }
 
-  function addInventory(form: InventoryForm) {
-    const nextId = Math.max(...inventory.value.map((item) => item.id), 0) + 1
-    inventory.value.unshift({
-      id: nextId,
-      name: form.name.trim(),
-      category: form.category,
-      quantity: Number(form.quantity),
-      unit: form.unit,
-      expiryDate: form.expiryDate,
-      location: form.location,
-      addedDate: '2026-06-05',
-      memo: form.memo.trim(),
+  async function addInventory(form: InventoryForm) {
+    const item = await apiRequest<ApiInventoryItem>('/api/refrigerator/items/manual', {
+      method: 'POST',
+      body: JSON.stringify(toRequestBody(form)),
     })
+    inventory.value.unshift(toInventoryItem(item))
     notifications.value.unshift({
       id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
       type: 'inventory',
       title: '재고 추가 완료',
       message: `${form.name.trim()} 재고가 추가되었습니다.`,
-      time: '2026-06-05 12:00',
+      time: new Date().toLocaleString('sv-SE'),
       read: false,
     })
     currentView.value = 'inventory'
   }
 
-  function updateInventory(id: number, form: InventoryForm) {
-    const target = inventory.value.find((item) => item.id === id)
-    if (!target) return
-
-    target.name = form.name.trim()
-    target.category = form.category
-    target.quantity = Number(form.quantity)
-    target.unit = form.unit
-    target.expiryDate = form.expiryDate
-    target.location = form.location
-    target.memo = form.memo.trim()
+  async function loadInventory() {
+    const items = await apiRequest<ApiInventoryItem[]>('/api/refrigerator/items')
+    inventory.value = items.map(toInventoryItem)
   }
 
-  function deleteInventory(id: number) {
+  async function loadNotifications() {
+    const items = await apiRequest<ApiNotification[]>('/api/notifications')
+    notifications.value = items.map((item) => ({
+      id: item.id,
+      type: item.type,
+      title: item.title,
+      message: item.message,
+      time: item.createdAt.replace('T', ' ').slice(0, 16),
+      read: item.read,
+    }))
+  }
+
+  async function loadSavedRecipes() {
+    if (isLoadingSavedRecipes.value) return
+    isLoadingSavedRecipes.value = true
+    recipeRecommendationError.value = ''
+    try {
+      const response = await apiRequest<ApiLatestRecipeRecommendations>('/api/meal-logs/recommendations/latest')
+      recipes.value = response.recipes.map((recipe, index) => ({
+        ...recipe,
+        gradient: recipeGradients[index % recipeGradients.length],
+      }))
+      hasRequestedRecipes.value = recipes.value.length > 0
+      selectedRecipeId.value = null
+    } catch (error) {
+      recipeRecommendationError.value = error instanceof Error
+        ? error.message
+        : '저장된 레시피를 불러오지 못했습니다.'
+      throw error
+    } finally {
+      isLoadingSavedRecipes.value = false
+    }
+  }
+
+  async function recommendRecipes(force = false) {
+    if (isRecommendingRecipes.value) return
+    const inventoryKey = inventory.value
+      .map(({ id, name, quantity, unit, expiryDate }) => `${id}:${name}:${quantity}:${unit}:${expiryDate}`)
+      .sort()
+      .join('|')
+    if (!force && inventoryKey === lastRecipeInventoryKey.value) return
+
+    isRecommendingRecipes.value = true
+    hasRequestedRecipes.value = true
+    recipeRecommendationError.value = ''
+    try {
+      const recommendations = await requestRecipeRecommendations(inventory.value)
+      recipes.value = recommendations
+      lastRecipeInventoryKey.value = inventoryKey
+      selectedRecipeId.value = null
+      const saved = await apiRequest<{ mealLogId: number; mealLogItemIds: number[] }>('/api/meal-logs/recommendations', {
+        method: 'POST',
+        body: JSON.stringify({
+          recipes: recommendations.map((recipe) => ({
+            name: recipe.name,
+            description: recipe.description,
+            matchRate: recipe.matchRate,
+            cookTime: recipe.cookTime,
+            servings: recipe.servings,
+            difficulty: recipe.difficulty,
+            calories: recipe.calories,
+            availableIngredients: recipe.availableIngredients,
+            missingIngredients: recipe.missingIngredients,
+            steps: recipe.steps,
+            tips: recipe.tips,
+          })),
+        }),
+      })
+      recipes.value = recommendations.map((recipe, index) => ({
+        ...recipe,
+        id: saved.mealLogItemIds[index] ?? recipe.id,
+      }))
+      const firstRecipe = recipes.value[0]
+      if (firstRecipe) {
+        notifications.value.unshift({
+          id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
+          type: 'recipe',
+          title: '새로운 AI 레시피 추천',
+          message: `현재 보유한 재료로 '${firstRecipe.name}'을(를) 추천해요.`,
+          time: new Date().toLocaleString('sv-SE'),
+          read: false,
+        })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '레시피를 추천받지 못했습니다.'
+      recipeRecommendationError.value = recipes.value.length > 0
+        ? `추천 결과는 표시했지만 저장하지 못했습니다. ${message}`
+        : message
+      throw error
+    } finally {
+      isRecommendingRecipes.value = false
+    }
+  }
+
+  async function updateInventory(id: number, form: InventoryForm) {
+    const item = await apiRequest<ApiInventoryItem>(`/api/refrigerator/items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(toRequestBody(form)),
+    })
+    const index = inventory.value.findIndex((inventoryItem) => inventoryItem.id === id)
+    if (index >= 0) inventory.value[index] = toInventoryItem(item)
+  }
+
+  async function deleteInventory(id: number) {
+    await apiRequest<void>(`/api/refrigerator/items/${id}`, { method: 'DELETE' })
     inventory.value = inventory.value.filter((item) => item.id !== id)
     selectedInventoryId.value = null
     currentView.value = 'inventory'
   }
 
-  function markAsRead(id: number) {
+  async function markAsRead(id: number) {
+    await apiRequest<void>(`/api/notifications/${id}/read`, { method: 'PUT' })
     const target = notifications.value.find((notification) => notification.id === id)
     if (target) target.read = true
   }
 
-  function markAllAsRead() {
+  async function markAllAsRead() {
+    await apiRequest<void>('/api/notifications/read-all', { method: 'PUT' })
     notifications.value.forEach((notification) => {
       notification.read = true
     })
   }
 
-  function deleteNotification(id: number) {
+  async function deleteNotification(id: number) {
+    await apiRequest<void>(`/api/notifications/${id}`, { method: 'DELETE' })
     notifications.value = notifications.value.filter((notification) => notification.id !== id)
   }
 
@@ -255,10 +358,14 @@ export const useFridgeStore = defineStore('fridge', () => {
   return {
     currentView,
     favoriteRecipeIds,
+    hasRequestedRecipes,
     inventoryWithStatus,
+    isLoadingSavedRecipes,
+    isRecommendingRecipes,
     notifications,
     recentInventory,
     recipes,
+    recipeRecommendationError,
     selectedInventory,
     selectedRecipe,
     stats,
@@ -269,8 +376,12 @@ export const useFridgeStore = defineStore('fridge', () => {
     go,
     markAllAsRead,
     markAsRead,
+    loadInventory,
+    loadNotifications,
+    loadSavedRecipes,
     openInventory,
     openRecipe,
+    recommendRecipes,
     toggleFavoriteRecipe,
     updateInventory,
   }
