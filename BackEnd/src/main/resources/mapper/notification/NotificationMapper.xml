@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.yumyum.domain.notification.dao.NotificationDao">
+    <insert id="insertExpirationNotifications">
+        INSERT IGNORE INTO notifications (
+            user_id, refrigerator_item_id, notification_type, title, content,
+            expiration_status, reference_date, sent_at
+        )
+        SELECT r.user_id, i.item_id, 'EXPIRATION',
+               CASE WHEN i.expiration_date &lt; #{referenceDate}
+                    THEN '유통기한 만료' ELSE '유통기한 임박' END,
+               CASE
+                   WHEN i.expiration_date &lt; #{referenceDate}
+                       THEN CONCAT(i.item_name, '의 유통기한이 지났습니다. 폐기를 권장합니다.')
+                   WHEN i.expiration_date = #{referenceDate}
+                       THEN CONCAT(i.item_name, '의 유통기한이 오늘 만료됩니다.')
+                   ELSE CONCAT(i.item_name, '가 ', DATEDIFF(i.expiration_date, #{referenceDate}),
+                               '일 후 유통기한이 만료됩니다.')
+               END,
+               CASE WHEN i.expiration_date &lt; #{referenceDate}
+                    THEN 'EXPIRED' ELSE 'EXPIRING_SOON' END,
+               #{referenceDate}, NOW()
+        FROM refrigerator_items i
+        JOIN refrigerators r ON r.refrigerator_id = i.refrigerator_id
+        WHERE i.expiration_date IS NOT NULL
+          AND (
+              DATEDIFF(i.expiration_date, #{referenceDate}) IN (3, 1)
+              OR i.expiration_date &lt; #{referenceDate}
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM notifications n
+              WHERE n.user_id = r.user_id
+                AND n.refrigerator_item_id = i.item_id
+                AND n.notification_type = 'EXPIRATION'
+                AND (
+                    (i.expiration_date &lt; #{referenceDate} AND n.expiration_status = 'EXPIRED')
+                    OR (
+                        i.expiration_date &gt;= #{referenceDate}
+                        AND n.expiration_status = 'EXPIRING_SOON'
+                        AND n.reference_date = #{referenceDate}
+                    )
+                )
+          )
+    </insert>
+
+    <select id="findAllByUserId" resultType="com.ssafy.yumyum.domain.notification.entity.Notification">
+        SELECT notification_id AS id, expiration_status AS expirationStatus,
+               title, content, is_read AS `read`, created_at AS createdAt
+        FROM notifications
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC, notification_id DESC
+    </select>
+
+    <update id="markAsRead">
+        UPDATE notifications SET is_read = TRUE
+        WHERE notification_id = #{id} AND user_id = #{userId}
+    </update>
+
+    <update id="markAllAsRead">
+        UPDATE notifications SET is_read = TRUE
+        WHERE user_id = #{userId} AND is_read = FALSE
+    </update>
+
+    <delete id="delete">
+        DELETE FROM notifications WHERE notification_id = #{id} AND user_id = #{userId}
+    </delete>
+</mapper>
