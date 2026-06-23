@@ -1,5 +1,8 @@
 <template>
   <section class="container page">
+    <p v-if="isLoading" class="empty-text" role="status">대시보드를 불러오는 중…</p>
+    <p v-else-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+    <template v-else>
     <div class="stats-grid">
       <article class="stat-card">
         <div>
@@ -44,6 +47,7 @@
               <em :class="`text-${statusClass(item.daysLeft)}`">{{ daysLabel(item.daysLeft) }}</em>
             </span>
           </button>
+          <p v-if="recentInventory.length === 0" class="empty-text">등록된 재고가 없습니다.</p>
         </div>
         <button class="link-btn center" type="button" @click="store.go('inventory')">전체 재고 보기</button>
       </section>
@@ -75,21 +79,35 @@
               </span>
               <em>{{ recipe.matchRate }}%</em>
             </button>
+            <p v-if="recommendedRecipes.length === 0" class="empty-text">레시피 탭에서 AI 맞춤 추천을 받아보세요.</p>
           </div>
         </section>
       </div>
     </div>
+    </template>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFridgeStore, categories } from '../stores/fridge'
 import { iconPath, statusClass, daysLabel } from '../utils/uiHelpers'
 
 const store = useFridgeStore()
 const { recentInventory, notifications, recipes, stats } = storeToRefs(store)
+const isLoading = ref(true)
+const errorMessage = ref('')
+
+onMounted(async () => {
+  try {
+    await Promise.all([store.loadInventory(), store.loadSavedRecipes(), store.loadNotifications()])
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '대시보드 데이터를 불러오지 못했습니다.'
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const categoryLabels = computed(() =>
   Object.fromEntries(categories.map((category) => [category.value, category.label])) as Record<string, string>,

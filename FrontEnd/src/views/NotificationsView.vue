@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFridgeStore } from '../stores/fridge'
 import { iconPath, notificationLabel } from '../utils/uiHelpers'
@@ -46,6 +46,8 @@ const store = useFridgeStore()
 const { notifications, unreadCount } = storeToRefs(store)
 
 const notificationFilter = ref<'all' | string>('all')
+
+onMounted(() => store.loadNotifications())
 
 const filteredNotifications = computed(() =>
   notifications.value.filter((notification) => notificationFilter.value === 'all' || notification.type === notificationFilter.value),

@@ -24,7 +24,10 @@
       </label>
     </section>
 
-    <div class="card-grid">
+    <p v-if="isLoading" class="empty-text" role="status">재고를 불러오는 중…</p>
+    <p v-else-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+
+    <div v-else class="card-grid">
       <button v-for="item in filteredInventory" :key="item.id" class="inventory-card" type="button" @click="store.openInventory(item.id)">
         <span class="card-top">
           <span>
@@ -42,12 +45,12 @@
       </button>
     </div>
 
-    <p v-if="filteredInventory.length === 0" class="empty-text">검색 결과가 없습니다.</p>
+    <p v-if="!isLoading && !errorMessage && filteredInventory.length === 0" class="empty-text">검색 결과가 없습니다.</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFridgeStore, categories } from '../stores/fridge'
 import { iconPath, statusClass, daysLabel } from '../utils/uiHelpers'
@@ -57,6 +60,18 @@ const { inventoryWithStatus } = storeToRefs(store)
 
 const searchQuery = ref('')
 const selectedCategory = ref<'all' | string>('all')
+const isLoading = ref(true)
+const errorMessage = ref('')
+
+onMounted(async () => {
+  try {
+    await store.loadInventory()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '재고를 불러오지 못했습니다.'
+  } finally {
+    isLoading.value = false
+  }
+})
 
 const categoryLabels = computed(() =>
   Object.fromEntries(categories.map((category) => [category.value, category.label])) as Record<string, string>,

@@ -21,7 +21,7 @@
         </label>
         <label class="form-field">수량
           <span class="inline-fields">
-            <input v-model="addForm.quantity" required type="number" min="0" placeholder="0" />
+            <input v-model="addForm.quantity" required type="number" min="0.01" step="any" placeholder="0" />
             <select v-model="addForm.unit"><option v-for="unit in units" :key="unit" :value="unit">{{ unit }}</option></select>
           </span>
         </label>
@@ -30,9 +30,10 @@
           <select v-model="addForm.location" required><option v-for="location in locations" :key="location" :value="location">{{ location }}</option></select>
         </label>
         <label class="form-field full">메모 <textarea v-model="addForm.memo" rows="3" placeholder="특이사항이나 메모를 입력하세요" /></label>
+        <p v-if="errorMessage" class="form-error full" role="alert">{{ errorMessage }}</p>
         <div class="button-row full">
           <button class="ghost-btn" type="button" @click="store.go('inventory')">취소</button>
-          <button class="primary-btn" type="submit">추가하기</button>
+          <button class="primary-btn" type="submit" :disabled="isSubmitting">{{ isSubmitting ? '추가 중…' : '추가하기' }}</button>
         </div>
       </form>
     </section>
@@ -40,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useFridgeStore, categories, locations, units, type InventoryForm } from '../stores/fridge'
 import { iconPath } from '../utils/uiHelpers'
 
@@ -57,9 +58,20 @@ const emptyForm = (): InventoryForm => ({
 })
 
 const addForm = reactive<InventoryForm>(emptyForm())
+const isSubmitting = ref(false)
+const errorMessage = ref('')
 
-function submitAdd() {
-  store.addInventory({ ...addForm })
-  Object.assign(addForm, emptyForm())
+async function submitAdd() {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+  errorMessage.value = ''
+  try {
+    await store.addInventory({ ...addForm })
+    Object.assign(addForm, emptyForm())
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '재고를 추가하지 못했습니다.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>

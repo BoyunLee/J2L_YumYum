@@ -32,9 +32,10 @@
           <select v-model="editForm.location" required><option v-for="location in locations" :key="location" :value="location">{{ location }}</option></select>
         </label>
         <label class="form-field full">메모 <textarea v-model="editForm.memo" rows="3" /></label>
+        <p v-if="errorMessage" class="form-error full" role="alert">{{ errorMessage }}</p>
         <div class="button-row full">
           <button class="ghost-btn" type="button" @click="isEditing = false">취소</button>
-          <button class="primary-btn" type="submit">저장하기</button>
+          <button class="primary-btn" type="submit" :disabled="isSaving">{{ isSaving ? '저장 중…' : '저장하기' }}</button>
         </div>
       </form>
 
@@ -52,23 +53,30 @@
 
         <div class="button-row">
           <button class="primary-btn" type="button" @click="isEditing = true"><svg viewBox="0 0 24 24"><path :d="iconPath('edit')" /></svg>수정하기</button>
-          <button class="danger-btn" type="button" @click="store.deleteInventory(selectedInventory.id)"><svg viewBox="0 0 24 24"><path :d="iconPath('trash')" /></svg>삭제하기</button>
+          <button class="danger-btn" type="button" :disabled="isDeleting" @click="deleteItem"><svg viewBox="0 0 24 24"><path :d="iconPath('trash')" /></svg>{{ isDeleting ? '삭제 중…' : '삭제하기' }}</button>
         </div>
+        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
       </div>
     </article>
   </section>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFridgeStore, categories, units, locations, type InventoryForm } from '../stores/fridge'
 import { iconPath, statusClass, daysLabel } from '../utils/uiHelpers'
 
 const store = useFridgeStore()
 const { selectedInventory } = storeToRefs(store)
+const categoryLabels = computed(() =>
+  Object.fromEntries(categories.map((category) => [category.value, category.label])) as Record<string, string>,
+)
 
 const isEditing = ref(false)
+const isSaving = ref(false)
+const isDeleting = ref(false)
+const errorMessage = ref('')
 
 const emptyForm = (): InventoryForm => ({
   name: '',
@@ -95,12 +103,32 @@ watch(selectedInventory, (item) => {
     memo: item.memo,
   })
   isEditing.value = false
-})
+}, { immediate: true })
 
-function submitEdit() {
+async function submitEdit() {
   if (!selectedInventory.value) return
+  isSaving.value = true
+  errorMessage.value = ''
+  try {
+    await store.updateInventory(selectedInventory.value.id, { ...editForm })
+    isEditing.value = false
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '재고를 수정하지 못했습니다.'
+  } finally {
+    isSaving.value = false
+  }
+}
 
-  store.updateInventory(selectedInventory.value.id, { ...editForm })
-  isEditing.value = false
+async function deleteItem() {
+  if (!selectedInventory.value || !window.confirm(`${selectedInventory.value.name} 재고를 완전히 삭제할까요?`)) return
+  isDeleting.value = true
+  errorMessage.value = ''
+  try {
+    await store.deleteInventory(selectedInventory.value.id)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '재고를 삭제하지 못했습니다.'
+  } finally {
+    isDeleting.value = false
+  }
 }
 </script>
