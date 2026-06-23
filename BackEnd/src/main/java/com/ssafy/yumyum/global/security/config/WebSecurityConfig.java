@@ -18,6 +18,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.ssafy.yumyum.global.security.jwt.TokenAuthenticationFilter;
 import com.ssafy.yumyum.global.security.jwt.TokenExceptionHandlerFilter;
 import com.ssafy.yumyum.global.security.jwt.TokenProvider;
+import com.ssafy.yumyum.global.security.oauth2.handler.OAuth2AuthenticationFailureHandler;
+import com.ssafy.yumyum.global.security.oauth2.handler.OAuth2AuthenticationSuccessHandler;
+import com.ssafy.yumyum.global.security.oauth2.repository.HttpCookieOAuth2AuthorizationRequestRepository;
+import com.ssafy.yumyum.global.security.oauth2.service.CustomOAuth2UserService;
 import com.ssafy.yumyum.global.security.service.CustomUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +34,11 @@ public class WebSecurityConfig {
     private final TokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
 
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         TokenAuthenticationFilter tokenAuthenticationFilter = new TokenAuthenticationFilter(tokenProvider, customUserDetailsService);
@@ -38,9 +47,17 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) //csrf 무시
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("").permitAll()
-                        .anyRequest().denyAll()
-                );
+                        // .requestMatchers("").permitAll()
+                        // .anyRequest().denyAll()
+                        .anyRequest().permitAll()
+                )
+                .oauth2Login(configure ->
+                        configure.authorizationEndpoint(config ->
+                                        config.authorizationRequestRepository(httpCookieOAuth2AuthorizationRequestRepository)
+                                                .baseUri("/api/user/oauth2"))
+                                .userInfoEndpoint(config -> config.userService(customOAuth2UserService))
+                                .successHandler(oAuth2AuthenticationSuccessHandler)
+                                .failureHandler(oAuth2AuthenticationFailureHandler));
         // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 추가
         http.addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(new TokenExceptionHandlerFilter(), TokenAuthenticationFilter.class);

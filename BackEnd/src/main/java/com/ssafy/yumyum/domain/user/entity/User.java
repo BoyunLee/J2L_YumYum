@@ -2,7 +2,6 @@ package com.ssafy.yumyum.domain.user.entity;
 
 import java.util.Date;
 
-import com.ssafy.yumyum.domain.auth.UserRole;
 import com.ssafy.yumyum.global.security.oauth2.user.OAuth2Provider;
 
 import lombok.AllArgsConstructor;
@@ -18,7 +17,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class User {
     private Long id;
-    private String name;
+    private String nickname;
     private String email;
     private OAuth2Provider provider;
     private String providerUserId;
@@ -26,9 +25,13 @@ public class User {
     private UserRole role;
 
     private Gender gender;
-    private Date birth_date;
-    private int height;
-    private int weight;
+    private Date birthDate;
+    private int heightCm;
+    private int weightKg;
     private ActivityLevel activityLevel;
+
+    private Date lastLoginAt;
+    private Date createdAt;
+    private Date updatedAt;
 }
 

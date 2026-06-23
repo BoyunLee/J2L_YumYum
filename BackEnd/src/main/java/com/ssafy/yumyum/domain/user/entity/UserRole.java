@@ -1,4 +1,4 @@
-package com.ssafy.yumyum.domain.auth;
+package com.ssafy.yumyum.domain.user.entity;
 
 public enum UserRole {
     GUEST("회원 정보 미입력"),

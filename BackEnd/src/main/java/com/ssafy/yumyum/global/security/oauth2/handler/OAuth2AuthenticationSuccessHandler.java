@@ -1,6 +1,7 @@
 package com.ssafy.yumyum.global.security.oauth2.handler;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.security.core.Authentication;
@@ -8,9 +9,9 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.ssafy.yumyum.domain.auth.UserRole;
 import com.ssafy.yumyum.domain.user.dao.UserDao;
 import com.ssafy.yumyum.domain.user.entity.User;
+import com.ssafy.yumyum.domain.user.entity.UserRole;
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
 import com.ssafy.yumyum.global.security.jwt.TokenProvider;
@@ -83,16 +84,21 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             User user = userRepository.findByProviderAndProviderUserId(provider, providerUserId)
                     .orElseGet(() -> {
                         isNewUser.set(true);
-                        return createAndSaveNewUser(provider, providerUserId);
+                        return createAndSaveNewUser(
+                                provider,
+                                providerUserId,
+                                principal.getUserInfo().getNickname()
+                        );
                     });
 
             if (user.getRole() == UserRole.GUEST) {
                 isNewUser.set(true);
             }
 
-            // 리프레시로 변경
             String accessToken = tokenProvider.generateAccessToken(user);
             String refreshToken = tokenProvider.generateRefreshToken(user);
+
+            // TODO: 리프레시 토큰 저장
 
             log.info("userId={}, provider={}, providerId={}", user.getId(), user.getProvider(), user.getProviderUserId());
 
@@ -127,15 +133,25 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .build().toUriString();
     }
 
-    private User createAndSaveNewUser(OAuth2Provider provider, String providerId) {
+    private User createAndSaveNewUser(OAuth2Provider provider, String providerId, String nickname) {
         User user = User.builder()
                 .provider(provider)
                 .providerUserId(providerId)
-                // 기본 프로필 아이콘 주소(String) 넣기
+                .nickname(resolveNickname(nickname))
+                // TODO: 기본 프로필 아이콘 주소(String) 넣기
                 .role(UserRole.GUEST)
                 .build();
 
-        return userRepository.insert(user);
+        userRepository.insert(user);
+        return user;
+    }
+
+    private String resolveNickname(String nickname) {
+        if (nickname != null && !nickname.isBlank()) {
+            return nickname;
+        }
+
+        return "유저_" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     private OAuth2UserPrincipal getOAuth2UserPrincipal(Authentication authentication) {

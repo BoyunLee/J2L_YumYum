@@ -32,7 +32,9 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
         targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("error", exception.getLocalizedMessage())
-                .build().toUriString();
+                .build()
+                .encode()
+                .toUriString();
 
         log.error("targetUrl={}, exception.getCause={}", targetUrl, exception.getMessage());
 

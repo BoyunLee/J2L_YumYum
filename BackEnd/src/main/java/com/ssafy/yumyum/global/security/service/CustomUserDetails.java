@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.ssafy.yumyum.domain.auth.UserRole;
+import com.ssafy.yumyum.domain.user.entity.UserRole;
 
 import lombok.Getter;
 

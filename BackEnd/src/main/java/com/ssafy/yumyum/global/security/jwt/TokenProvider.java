@@ -1,6 +1,6 @@
 package com.ssafy.yumyum.global.security.jwt;
 
-import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +44,8 @@ public class TokenProvider {
             List<String> authorities = List.of("ROLE_" + user.getRole());
             Date now = new Date();
 
+            log.info("Generating token for userId={}, authorities={}, expiry={}", user.getId(), authorities, expiry);
+
             return Jwts.builder()
                     .header()
                         .type("JWT")
@@ -56,6 +58,7 @@ public class TokenProvider {
                     .signWith(getSigningKey())
                     .compact();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new BusinessException(ExceptionType.GENERATE_TOKEN_ERROR);
         }
     }
@@ -98,9 +101,8 @@ public class TokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        String base64SecretKey = jwtProperties.getSecretKey();
-        byte[] secretKeyBytes = Base64.getDecoder().decode(base64SecretKey);
-        return Keys.hmacShaKeyFor(secretKeyBytes);
+        String secretKey = jwtProperties.getSecretKey();
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public void clearAccessTokenCookie(HttpServletResponse response) {

@@ -18,11 +18,11 @@ public interface UserDao {
 
     Optional<User> findByProviderAndProviderUserId(OAuth2Provider provider, String providerUserId);
 
-    User insert(User user);
+    void insert(User user);
 
     boolean update(User user);
 
-    boolean deactivate(@Param("id") String id);
+    boolean deactivate(@Param("id") Long id);
 
     void delete(User user);
 }

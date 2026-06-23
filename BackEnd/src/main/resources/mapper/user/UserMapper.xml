@@ -1,6 +1,134 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.ssafy.yumyum.domain.user.User">
+<mapper namespace="com.ssafy.yumyum.domain.user.dao.UserDao">
+
+    <resultMap id="userResultMap" type="com.ssafy.yumyum.domain.user.entity.User">
+        <id property="id" column="user_id"/>
+
+        <result property="provider" column="provider"/>
+        <result property="providerUserId" column="provider_user_id"/>
+        <result property="email" column="email"/>
+        <result property="nickname" column="nickname"/>
+        <result property="profileImageUrl" column="profile_image_url"/>
+
+        <result property="role" column="role"/>
+        <result property="gender" column="gender"/>
+
+        <result property="birthDate" column="birth_date"/>
+        <result property="heightCm" column="height_cm"/>
+        <result property="weightKg" column="weight_kg"/>
+        <result property="activityLevel" column="activity_level"/>
+
+        <result property="lastLoginAt" column="last_login_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 전체 조회 -->
+    <select id="findAll" resultMap="userResultMap">
+        SELECT *
+        FROM users
+        WHERE deleted_at IS NULL
+        ORDER BY user_id
+    </select>
+
+    <!-- PK 조회 -->
+    <select id="findById"
+            parameterType="long"
+            resultMap="userResultMap">
+        SELECT *
+        FROM users
+        WHERE user_id = #{id}
+          AND deleted_at IS NULL
+    </select>
+
+    <!-- OAuth 사용자 조회 -->
+    <select id="findByProviderAndProviderUserId"
+            resultMap="userResultMap">
+        SELECT *
+        FROM users
+        WHERE provider = #{provider}
+          AND provider_user_id = #{providerUserId}
+          AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <!-- 회원 등록 -->
+    <insert id="insert"
+            parameterType="com.ssafy.yumyum.domain.user.entity.User"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="user_id">
+
+        INSERT INTO users (
+            provider,
+            provider_user_id,
+            email,
+            nickname,
+            profile_image_url,
+            role,
+            gender,
+            birth_date,
+            height_cm,
+            weight_kg,
+            activity_level,
+            last_login_at
+        )
+        VALUES (
+            #{provider},
+            #{providerUserId},
+            #{email},
+            #{nickname},
+            #{profileImageUrl},
+            #{role},
+            #{gender},
+            #{birthDate},
+            #{heightCm},
+            #{weightKg},
+            #{activityLevel},
+            #{lastLoginAt}
+        )
+
+    </insert>
+
+    <!-- 회원 정보 수정 -->
+    <update id="update"
+            parameterType="com.ssafy.yumyum.domain.user.entity.User">
+
+        UPDATE users
+        SET
+            email = #{email},
+            nickname = #{nickname},
+            profile_image_url = #{profileImageUrl},
+            role = #{role},
+            gender = #{gender},
+            birth_date = #{birthDate},
+            height_cm = #{heightCm},
+            weight_kg = #{weightKg},
+            activity_level = #{activityLevel},
+            last_login_at = #{lastLoginAt}
+        WHERE user_id = #{id}
+          AND deleted_at IS NULL
+
+    </update>
+
+    <!-- 소프트 삭제 -->
+    <update id="deactivate">
+        UPDATE users
+        SET deleted_at = NOW()
+        WHERE user_id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
+    <!-- 물리 삭제 -->
+    <delete id="delete"
+            parameterType="com.ssafy.yumyum.domain.user.entity.User">
+        DELETE
+        FROM users
+        WHERE user_id = #{id}
+    </delete>
 
 </mapper>
