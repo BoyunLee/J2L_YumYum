@@ -22,6 +22,10 @@ public interface UserDao {
 
     boolean update(User user);
 
+    boolean completeProfile(User user);
+
+    boolean updateProfile(User user);
+
     boolean deactivate(@Param("id") Long id);
 
     void delete(User user);

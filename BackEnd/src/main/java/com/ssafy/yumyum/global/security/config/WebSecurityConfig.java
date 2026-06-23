@@ -47,6 +47,9 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) //csrf 무시
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/user/oauth2/**").permitAll()
+                        .requestMatchers("/api/users/me/onboarding").hasRole("GUEST")
+                        .requestMatchers("/api/**").hasRole("USER")
                         // .requestMatchers("").permitAll()
                         // .anyRequest().denyAll()
                         .anyRequest().permitAll()

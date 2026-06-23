@@ -131,4 +131,34 @@
         WHERE user_id = #{id}
     </delete>
 
+    <update id="completeProfile"
+            parameterType="com.ssafy.yumyum.domain.user.entity.User">
+        UPDATE users
+        SET email = #{email},
+            nickname = #{nickname},
+            gender = #{gender},
+            birth_date = #{birthDate},
+            height_cm = #{heightCm},
+            weight_kg = #{weightKg},
+            activity_level = #{activityLevel},
+            role = 'USER'
+        WHERE user_id = #{id}
+          AND role = 'GUEST'
+          AND deleted_at IS NULL
+    </update>
+
+    <update id="updateProfile"
+            parameterType="com.ssafy.yumyum.domain.user.entity.User">
+        UPDATE users
+        SET email = #{email},
+            nickname = #{nickname},
+            gender = #{gender},
+            birth_date = #{birthDate},
+            height_cm = #{heightCm},
+            weight_kg = #{weightKg},
+            activity_level = #{activityLevel}
+        WHERE user_id = #{id}
+          AND deleted_at IS NULL
+    </update>
+
 </mapper>

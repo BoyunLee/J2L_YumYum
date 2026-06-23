@@ -2,6 +2,7 @@ package com.ssafy.yumyum.global.security.oauth2.handler;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
@@ -24,11 +25,17 @@ import static com.ssafy.yumyum.global.security.oauth2.repository.HttpCookieOAuth
 public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
+    @Value("${company.origin-url}")
+    private String frontendOriginUrl;
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
         String targetUrl = CookieUtils.getCookie(request, REDIRECT_URI_PARAM_COOKIE_NAME)
                 .map(Cookie::getValue)
-                .orElse("/");
+                .orElseGet(() -> UriComponentsBuilder.fromUriString(frontendOriginUrl)
+                        .path("/login/callback")
+                        .build()
+                        .toUriString());
 
         targetUrl = UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("error", exception.getLocalizedMessage())

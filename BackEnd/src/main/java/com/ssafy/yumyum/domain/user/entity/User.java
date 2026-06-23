@@ -1,5 +1,6 @@
 package com.ssafy.yumyum.domain.user.entity;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 import com.ssafy.yumyum.global.security.oauth2.user.OAuth2Provider;
@@ -26,8 +27,8 @@ public class User {
 
     private Gender gender;
     private Date birthDate;
-    private int heightCm;
-    private int weightKg;
+    private BigDecimal heightCm;
+    private BigDecimal weightKg;
     private ActivityLevel activityLevel;
 
     private Date lastLoginAt;

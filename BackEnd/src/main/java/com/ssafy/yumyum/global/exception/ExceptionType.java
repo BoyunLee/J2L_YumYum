@@ -30,6 +30,8 @@ public enum ExceptionType {
     EXPIRED_EMAIL_CODE(BAD_REQUEST, "U007", "만료된 인증번호입니다."),
     EMAIL_NOT_VERIFIED(UNAUTHORIZED, "U008", "이메일 인증이 완료되지 않았습니다."),
 
+    USER_PROFILE_ALREADY_COMPLETED(CONFLICT, "U009", "이미 추가 정보 입력을 완료한 사용자입니다."),
+
     // auth
     INVALID_LOGIN(HttpStatus.UNAUTHORIZED, "A001", "아이디 또는 비밀번호가 일치하지 않습니다."),
     GENERATE_TOKEN_ERROR(INTERNAL_SERVER_ERROR, "A002", "토큰 생성 과정 중 오류가 발생했습니다."),
@@ -42,6 +44,9 @@ public enum ExceptionType {
     NOT_FOUND_REFRESH_TOKEN(UNAUTHORIZED, "A009", "Refresh Token 이 존재하지 않습니다."),
     EXPIRED_REFRESH_TOKEN(UNAUTHORIZED, "A010", "Refresh Token Token 만료"),
     AUTHORIZATION_DENIED(FORBIDDEN, "A011", "권한이 없습니다."),
+
+    // refrigerator
+    REFRIGERATOR_ITEM_NOT_FOUND(NOT_FOUND, "R001", "존재하지 않는 냉장고 재고입니다."),
 
     // file
 

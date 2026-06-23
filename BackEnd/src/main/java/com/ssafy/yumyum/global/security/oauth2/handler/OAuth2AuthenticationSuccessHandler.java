@@ -87,7 +87,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         return createAndSaveNewUser(
                                 provider,
                                 providerUserId,
-                                principal.getUserInfo().getNickname()
+                                principal.getUserInfo().getNickname(),
+                                principal.getUserInfo().getEmail(),
+                                principal.getUserInfo().getProfileImageUrl()
                         );
                     });
 
@@ -121,11 +123,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             User user = userRepository.findByProviderAndProviderUserId(provider, providerId)
                     .orElseThrow(() -> new BusinessException(ExceptionType.USER_NOT_FOUND));
 
-            userRepository.delete(user);
-
             oAuth2UserUnlinkManager.unlink(provider, accessToken);
 
+            if (!userRepository.deactivate(user.getId())) {
+                throw new BusinessException(ExceptionType.USER_NOT_FOUND);
+            }
+
             return UriComponentsBuilder.fromUriString(targetUrl)
+                    .queryParam("unlinked", true)
                     .build().toUriString();
         }
         return UriComponentsBuilder.fromUriString(targetUrl)
@@ -133,11 +138,14 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .build().toUriString();
     }
 
-    private User createAndSaveNewUser(OAuth2Provider provider, String providerId, String nickname) {
+    private User createAndSaveNewUser(OAuth2Provider provider, String providerId, String nickname,
+                                      String email, String profileImageUrl) {
         User user = User.builder()
                 .provider(provider)
                 .providerUserId(providerId)
                 .nickname(resolveNickname(nickname))
+                .email(email)
+                .profileImageUrl(profileImageUrl)
                 // TODO: 기본 프로필 아이콘 주소(String) 넣기
                 .role(UserRole.GUEST)
                 .build();
