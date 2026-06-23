@@ -13,6 +13,8 @@
           <svg viewBox="0 0 24 24"><path :d="iconPath('bell')" /></svg>
           <b v-if="unreadCount">{{ unreadCount }}</b>
         </button>
+        <button class="ghost-btn compact" type="button" @click="store.go('myPage')">마이페이지</button>
+        <button class="logout-btn" type="button" @click="auth.logout">로그아웃</button>
       </div>
 
       <nav class="nav-list" aria-label="주요 메뉴">
@@ -36,9 +38,11 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useFridgeStore } from '../stores/fridge'
+import { useAuthStore } from '../stores/auth'
 import { iconPath } from '../utils/uiHelpers'
 
 const store = useFridgeStore()
+const auth = useAuthStore()
 const { currentView, unreadCount } = storeToRefs(store)
 
 const navItems = [
