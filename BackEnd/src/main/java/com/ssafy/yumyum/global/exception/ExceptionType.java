@@ -58,6 +58,8 @@ public enum ExceptionType {
     BARCODE_PRODUCT_NOT_FOUND(NOT_FOUND, "F007", "인식한 바코드에 해당하는 제품을 식품안전나라에서 찾지 못했습니다."),
     FOOD_SAFETY_API_ERROR(BAD_GATEWAY, "F008", "식품안전나라 상품 조회에 실패했습니다."),
     FOOD_SAFETY_API_KEY_NOT_CONFIGURED(INTERNAL_SERVER_ERROR, "F009", "식품안전나라 API 인증키가 설정되지 않았습니다."),
+    OCR_API_KEY_NOT_CONFIGURED(INTERNAL_SERVER_ERROR, "F010", "OCR API 키가 설정되지 않았습니다."),
+    OCR_ANALYSIS_FAILED(BAD_GATEWAY, "F011", "OCR 이미지 분석에 실패했습니다."),
 
     // 
 

@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssafy.yumyum.domain.refrigerator.dto.ImageAnalysisType;
-import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisResponse;
+import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisBatchResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemUpdateRequest;
-import com.ssafy.yumyum.domain.refrigerator.dto.ManualInventoryCreateRequest;
+import com.ssafy.yumyum.domain.refrigerator.dto.ManualInventoryCreateBatchRequest;
 import com.ssafy.yumyum.domain.refrigerator.service.RefrigeratorItemService;
 import com.ssafy.yumyum.domain.refrigerator.service.InventoryImageAnalysisService;
 import com.ssafy.yumyum.global.response.ResponseBody;
@@ -39,10 +39,10 @@ public class RefrigeratorItemController {
     private final InventoryImageAnalysisService inventoryImageAnalysisService;
 
     @PostMapping(value = "/analyze/{analysisType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseBody<InventoryImageAnalysisResponse> analyzeImage(
+    public ResponseBody<InventoryImageAnalysisBatchResponse> analyzeImage(
             @PathVariable String analysisType,
             @RequestPart("image") MultipartFile image) {
-        InventoryImageAnalysisResponse response = inventoryImageAnalysisService.analyze(
+        InventoryImageAnalysisBatchResponse response = inventoryImageAnalysisService.analyze(
                 ImageAnalysisType.from(analysisType),
                 image
         );
@@ -50,10 +50,10 @@ public class RefrigeratorItemController {
     }
 
     @PostMapping("/manual")
-    public ResponseEntity<ResponseBody<InventoryItemResponse>> createManual(
+    public ResponseEntity<ResponseBody<List<InventoryItemResponse>>> createManual(
             @AuthenticationPrincipal CustomUserDetails user,
-            @Valid @RequestBody ManualInventoryCreateRequest request) {
-        InventoryItemResponse response = refrigeratorItemService.createManual(user.getId(), request);
+            @Valid @RequestBody ManualInventoryCreateBatchRequest request) {
+        List<InventoryItemResponse> response = refrigeratorItemService.createManuals(user.getId(), request.items());
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseUtil.createSuccessResponse(response));
     }
 

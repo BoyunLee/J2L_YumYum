@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssafy.yumyum.domain.refrigerator.dto.ImageAnalysisType;
-import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisResponse;
+import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisBatchResponse;
 import com.ssafy.yumyum.domain.refrigerator.service.imageanalysis.InventoryImageAnalysisProvider;
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
@@ -20,7 +20,7 @@ public class InventoryImageAnalysisService {
 
     private final InventoryImageAnalysisProvider imageAnalysisProvider;
 
-    public InventoryImageAnalysisResponse analyze(ImageAnalysisType analysisType, MultipartFile image) {
+    public InventoryImageAnalysisBatchResponse analyze(ImageAnalysisType analysisType, MultipartFile image) {
         validate(image);
         try {
             return imageAnalysisProvider.analyze(

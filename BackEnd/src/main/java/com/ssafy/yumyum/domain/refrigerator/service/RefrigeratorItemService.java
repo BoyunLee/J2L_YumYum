@@ -21,21 +21,13 @@ public class RefrigeratorItemService {
     private final RefrigeratorItemDao refrigeratorItemDao;
 
     @Transactional
-    public InventoryItemResponse createManual(Long userId, ManualInventoryCreateRequest request) {
+    public List<InventoryItemResponse> createManuals(Long userId, List<ManualInventoryCreateRequest> requests) {
         refrigeratorItemDao.createDefaultRefrigeratorIfAbsent(userId);
+        Long refrigeratorId = refrigeratorItemDao.findRefrigeratorIdByUserId(userId);
 
-        RefrigeratorItem item = new RefrigeratorItem();
-        item.setRefrigeratorId(refrigeratorItemDao.findRefrigeratorIdByUserId(userId));
-        item.setName(request.name().trim());
-        item.setCategory(request.category());
-        item.setQuantity(request.quantity());
-        item.setUnit(request.unit().trim());
-        item.setExpirationDate(request.expirationDate());
-        item.setStorageLocation(request.storageLocation());
-        item.setMemo(request.memo() == null ? null : request.memo().trim());
-        refrigeratorItemDao.insertManual(item);
-
-        return InventoryItemResponse.from(refrigeratorItemDao.findById(item.getId()));
+        return requests.stream()
+                .map(request -> createManualItem(refrigeratorId, request))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -70,5 +62,19 @@ public class RefrigeratorItemService {
         }
         refrigeratorItemDao.deleteLogsByIdAndUserId(itemId, userId);
         refrigeratorItemDao.deleteByIdAndUserId(itemId, userId);
+    }
+
+    private InventoryItemResponse createManualItem(Long refrigeratorId, ManualInventoryCreateRequest request) {
+        RefrigeratorItem item = new RefrigeratorItem();
+        item.setRefrigeratorId(refrigeratorId);
+        item.setName(request.name().trim());
+        item.setCategory(request.category());
+        item.setQuantity(request.quantity());
+        item.setUnit(request.unit().trim());
+        item.setExpirationDate(request.expirationDate());
+        item.setStorageLocation(request.storageLocation());
+        item.setMemo(request.memo() == null ? null : request.memo().trim());
+        refrigeratorItemDao.insertManual(item);
+        return InventoryItemResponse.from(refrigeratorItemDao.findById(item.getId()));
     }
 }

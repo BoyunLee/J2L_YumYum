@@ -1,6 +1,7 @@
 package com.ssafy.yumyum.domain.refrigerator.service.imageanalysis;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,7 +9,8 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 import com.ssafy.yumyum.domain.refrigerator.dto.ImageAnalysisType;
-import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisResponse;
+import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisBatchResponse;
+import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisItemResponse;
 import com.ssafy.yumyum.domain.refrigerator.entity.FoodCategory;
 
 import lombok.RequiredArgsConstructor;
@@ -25,15 +27,41 @@ public class FoodSafetyInventoryImageAnalysisProvider implements InventoryImageA
 
     private final BarcodeDecoder barcodeDecoder;
     private final FoodSafetyProductClient foodSafetyProductClient;
+    private final PororoOcrClient pororoOcrClient;
+    private final GmsOcrBatchTextClient gmsOcrTextClient;
 
     @Override
-    public InventoryImageAnalysisResponse analyze(
+    public InventoryImageAnalysisBatchResponse analyze(
             ImageAnalysisType analysisType,
             byte[] imageBytes,
             String contentType,
             String originalFilename) {
         if (analysisType == ImageAnalysisType.OCR) {
-            return InventoryImageAnalysisResponse.pendingProvider(analysisType);
+            PororoOcrClient.PororoOcrText ocrText = pororoOcrClient.extractText(
+                    imageBytes,
+                    contentType,
+                    originalFilename
+            );
+            GmsOcrBatchTextClient.OcrResult result = gmsOcrTextClient.analyze(ocrText, originalFilename);
+            return new InventoryImageAnalysisBatchResponse(
+                    ImageAnalysisType.OCR,
+                    result.detected(),
+                    result.items().stream()
+                            .map(item -> new InventoryImageAnalysisItemResponse(
+                                    item.name(),
+                                    item.category(),
+                                    item.quantity(),
+                                    item.unit(),
+                                    item.expirationDate(),
+                                    item.storageLocation(),
+                                    item.memo(),
+                                    null,
+                                    item.rawText(),
+                                    item.confidence()
+                            ))
+                            .toList(),
+                    result.message()
+            );
         }
 
         String barcode = barcodeDecoder.decode(imageBytes);
@@ -41,19 +69,21 @@ public class FoodSafetyInventoryImageAnalysisProvider implements InventoryImageA
         FoodSafetyProduct product = foodSafetyProductClient.findByBarcode(barcode);
         Quantity quantity = parseQuantity(product.productName());
 
-        return new InventoryImageAnalysisResponse(
+        return new InventoryImageAnalysisBatchResponse(
                 ImageAnalysisType.BARCODE,
                 true,
-                product.productName(),
-                mapCategory(product.productName(), product.foodType()),
-                quantity.value(),
-                quantity.unit(),
-                null,
-                null,
-                buildMemo(product),
-                product.barcode(),
-                null,
-                1.0,
+                List.of(new InventoryImageAnalysisItemResponse(
+                        product.productName(),
+                        mapCategory(product.productName(), product.foodType()),
+                        quantity.value(),
+                        quantity.unit(),
+                        null,
+                        null,
+                        buildMemo(product),
+                        product.barcode(),
+                        null,
+                        1.0
+                )),
                 "바코드와 식품안전나라 제품 정보를 확인했습니다."
         );
     }
