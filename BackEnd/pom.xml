@@ -150,6 +150,18 @@
             <version>2.6.0</version>
         </dependency>
 
+        <!-- 상품 사진에서 EAN/UPC/CODE_128 바코드 번호를 읽기 위한 로컬 디코더 -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+
         <dependency>
             <groupId>me.paulschwarz</groupId>
             <artifactId>spring-dotenv</artifactId>
