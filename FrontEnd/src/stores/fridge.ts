@@ -8,6 +8,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:808
 export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
 export type Category = 'dairy' | 'meat' | 'vegetable' | 'fruit' | 'etc'
 export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory'
+export type ImageAnalysisType = 'OCR' | 'BARCODE'
 
 export interface InventoryItem {
   id: number
@@ -29,6 +30,22 @@ export interface InventoryForm {
   expiryDate: string
   location: string
   memo: string
+}
+
+export interface InventoryImageAnalysis {
+  analysisType: ImageAnalysisType
+  detected: boolean
+  name: string | null
+  category: string | null
+  quantity: number | null
+  unit: string | null
+  expirationDate: string | null
+  storageLocation: string | null
+  memo: string | null
+  barcode: string | null
+  rawText: string | null
+  confidence: number | null
+  message: string
 }
 
 interface ApiInventoryItem {
@@ -167,11 +184,12 @@ export const useFridgeStore = defineStore('fridge', () => {
   const selectedRecipe = computed(() => recipes.value.find((recipe) => recipe.id === selectedRecipeId.value) ?? recipes.value[0])
 
   async function apiRequest<T>(path: string, options: RequestInit = {}) {
+    const isMultipart = options.body instanceof FormData
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
         Authorization: `Bearer ${auth.accessToken}`,
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.body && !isMultipart ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers,
       },
     })
@@ -180,7 +198,7 @@ export const useFridgeStore = defineStore('fridge', () => {
     if (!response.ok) {
       if (response.status === 401) throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
       if (response.status === 403) throw new Error('재고를 관리할 권한이 없습니다.')
-      throw new Error(body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
+      throw new Error(body?.message ?? body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
     }
     return body?.data as T
   }
@@ -214,6 +232,18 @@ export const useFridgeStore = defineStore('fridge', () => {
       read: false,
     })
     currentView.value = 'inventory'
+  }
+
+  async function analyzeInventoryImage(analysisType: ImageAnalysisType, image: File) {
+    const formData = new FormData()
+    formData.append('image', image, image.name)
+    return apiRequest<InventoryImageAnalysis>(
+      `/api/refrigerator/items/analyze/${analysisType.toLowerCase()}`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+    )
   }
 
   async function loadInventory() {
@@ -371,6 +401,7 @@ export const useFridgeStore = defineStore('fridge', () => {
     stats,
     unreadCount,
     addInventory,
+    analyzeInventoryImage,
     deleteInventory,
     deleteNotification,
     go,
