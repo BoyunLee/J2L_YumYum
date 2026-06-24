@@ -2,6 +2,7 @@ package com.ssafy.yumyum.global.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -16,7 +17,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @PropertySource("classpath:/application.properties")
-@MapperScan(basePackages = { "com.ssafy.yumyum.**.mapper" })
+@MapperScan(basePackages = "com.ssafy.yumyum.domain", annotationClass = Mapper.class)
 public class DBConfiguration {
 	
 	final ApplicationContext applicationContext;
