@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+﻿import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
 import { requestRecipeRecommendations } from '../api/recipeRecommendation'
@@ -35,6 +35,11 @@ export interface InventoryForm {
 export interface InventoryImageAnalysis {
   analysisType: ImageAnalysisType
   detected: boolean
+  items: InventoryImageAnalysisItem[]
+  message: string
+}
+
+export interface InventoryImageAnalysisItem {
   name: string | null
   category: string | null
   quantity: number | null
@@ -45,7 +50,6 @@ export interface InventoryImageAnalysis {
   barcode: string | null
   rawText: string | null
   confidence: number | null
-  message: string
 }
 
 interface ApiInventoryItem {
@@ -116,16 +120,20 @@ export const categories: { value: Category | 'all'; label: string }[] = [
 ]
 
 export const units = ['개', 'g', 'kg', 'ml', 'L']
-export const locations = ['냉장실', '냉동실', '실온']
+export const locations = ['냉장', '냉동', '실온']
 
 const categoryMap: Record<Category, string> = {
   dairy: 'DAIRY', meat: 'MEAT', vegetable: 'VEGETABLE', fruit: 'FRUIT', etc: 'ETC',
 }
 const locationMap: Record<string, string> = {
-  냉장실: 'REFRIGERATOR', 냉동실: 'FREEZER', 실온: 'ROOM_TEMPERATURE',
+  냉장: 'REFRIGERATOR',
+  냉동: 'FREEZER',
+  실온: 'ROOM_TEMPERATURE',
 }
 const locationLabels: Record<string, string> = {
-  REFRIGERATOR: '냉장실', FREEZER: '냉동실', ROOM_TEMPERATURE: '실온',
+  REFRIGERATOR: '냉장',
+  FREEZER: '냉동',
+  ROOM_TEMPERATURE: '실온',
 }
 const recipeGradients = ['yellow', 'red', 'green', 'lime']
 
@@ -198,10 +206,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     if (!response.ok) {
       if (response.status === 401) {
         auth.expireSession()
-        throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+        throw new Error('濡쒓렇?몄씠 留뚮즺?섏뿀?듬땲?? ?ㅼ떆 濡쒓렇?명빐 二쇱꽭??')
       }
-      if (response.status === 403) throw new Error('재고를 관리할 권한이 없습니다.')
-      throw new Error(body?.message ?? body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
+      if (response.status === 403) throw new Error('?ш퀬瑜?愿由ы븷 沅뚰븳???놁뒿?덈떎.')
+      throw new Error(body?.message ?? body?.msg ?? `?붿껌??泥섎━?섏? 紐삵뻽?듬땲?? (HTTP ${response.status})`)
     }
     return body?.data as T
   }
@@ -220,17 +228,25 @@ export const useFridgeStore = defineStore('fridge', () => {
     currentView.value = 'recipeDetail'
   }
 
-  async function addInventory(form: InventoryForm) {
-    const item = await apiRequest<ApiInventoryItem>('/api/refrigerator/items/manual', {
+  async function addInventory(forms: InventoryForm[]) {
+    const items = await apiRequest<ApiInventoryItem[]>('/api/refrigerator/items/manual', {
       method: 'POST',
-      body: JSON.stringify(toRequestBody(form)),
+      body: JSON.stringify({
+        items: forms.map(toRequestBody),
+      }),
     })
-    inventory.value.unshift(toInventoryItem(item))
+    const addedItems = items.map(toInventoryItem)
+    inventory.value = [...addedItems.slice().reverse(), ...inventory.value]
+    const addedCount = addedItems.length
+    const firstItemName = forms[0]?.name.trim() || '상품'
+
     notifications.value.unshift({
       id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
       type: 'inventory',
-      title: '재고 추가 완료',
-      message: `${form.name.trim()} 재고가 추가되었습니다.`,
+      title: addedCount > 1 ? '상품 일괄 등록 완료' : '상품 추가 완료',
+      message: addedCount > 1
+        ? `${addedCount}개의 상품을 한 번에 등록했습니다.`
+        : `${firstItemName} 재고가 추가되었습니다.`,
       time: new Date().toLocaleString('sv-SE'),
       read: false,
     })
@@ -281,7 +297,7 @@ export const useFridgeStore = defineStore('fridge', () => {
     } catch (error) {
       recipeRecommendationError.value = error instanceof Error
         ? error.message
-        : '저장된 레시피를 불러오지 못했습니다.'
+        : '??λ맂 ?덉떆?쇰? 遺덈윭?ㅼ? 紐삵뻽?듬땲??'
       throw error
     } finally {
       isLoadingSavedRecipes.value = false
@@ -331,16 +347,16 @@ export const useFridgeStore = defineStore('fridge', () => {
         notifications.value.unshift({
           id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
           type: 'recipe',
-          title: '새로운 AI 레시피 추천',
-          message: `현재 보유한 재료로 '${firstRecipe.name}'을(를) 추천해요.`,
+          title: '?덈줈??AI ?덉떆??異붿쿇',
+          message: `?꾩옱 蹂댁쑀???щ즺濡?'${firstRecipe.name}'??瑜? 異붿쿇?댁슂.`,
           time: new Date().toLocaleString('sv-SE'),
           read: false,
         })
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '레시피를 추천받지 못했습니다.'
+      const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'
       recipeRecommendationError.value = recipes.value.length > 0
-        ? `추천 결과는 표시했지만 저장하지 못했습니다. ${message}`
+        ? `異붿쿇 寃곌낵???쒖떆?덉?留???ν븯吏 紐삵뻽?듬땲?? ${message}`
         : message
       throw error
     } finally {
@@ -420,3 +436,4 @@ export const useFridgeStore = defineStore('fridge', () => {
     updateInventory,
   }
 })
+

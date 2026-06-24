@@ -1022,6 +1022,36 @@ textarea:focus {
   font-weight: 700;
 }
 
+.batch-add-description {
+  margin-top: 0.5rem;
+  color: var(--gray-600);
+}
+
+.inventory-form-stack,
+.inventory-form-group {
+  display: grid;
+  gap: 1rem;
+}
+
+.inventory-form-toolbar,
+.inventory-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inventory-form-toolbar p {
+  margin-top: 0.35rem;
+  color: var(--gray-500);
+  font-size: 0.88rem;
+}
+
+.inventory-form-head strong {
+  color: var(--gray-900);
+  font-size: 1rem;
+}
+
 .text-btn {
   padding: 0;
   border: 0;
@@ -1578,6 +1608,12 @@ textarea:focus {
 
   .camera-actions,
   .selected-image-actions {
+    flex-direction: column;
+  }
+
+  .inventory-form-toolbar,
+  .inventory-form-head {
+    align-items: stretch;
     flex-direction: column;
   }
 
