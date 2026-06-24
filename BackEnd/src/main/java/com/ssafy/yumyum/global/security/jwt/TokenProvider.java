@@ -11,6 +11,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
 import com.ssafy.yumyum.domain.user.entity.User;
+import com.ssafy.yumyum.domain.admin.entity.AdminUser;
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
 
@@ -37,6 +38,30 @@ public class TokenProvider {
     public String generateRefreshToken(User user) {
         Date now = new Date();
         return makeToken(new Date(now.getTime() + jwtProperties.getRefreshExpiredAt()), user);
+    }
+
+    public String generateAdminAccessToken(AdminUser admin) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + jwtProperties.getAccessExpiredAt());
+        try {
+            List<String> authorities = List.of("ROLE_" + admin.getRole().name());
+            return Jwts.builder()
+                    .header().type("JWT").and()
+                    .issuer(jwtProperties.getIssuer())
+                    .issuedAt(now)
+                    .expiration(expiry)
+                    .subject(String.valueOf(admin.getId()))
+                    .claim("authorities", authorities)
+                    .claim("token_kind", "ADMIN")
+                    .signWith(getSigningKey())
+                    .compact();
+        } catch (Exception exception) {
+            throw new BusinessException(ExceptionType.GENERATE_TOKEN_ERROR);
+        }
+    }
+
+    public boolean isAdminToken(String token) {
+        return "ADMIN".equals(getClaims(token).get("token_kind", String.class));
     }
 
     private String makeToken(Date expiry, User user) {

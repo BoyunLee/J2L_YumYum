@@ -30,6 +30,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         String accessToken = getAccessToken(request);
         if (accessToken != null) {
             tokenProvider.validToken(accessToken, TokenType.ACCESS, response);
+            if (tokenProvider.isAdminToken(accessToken)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             authenticateWithToken(accessToken);
         }
         filterChain.doFilter(request, response);

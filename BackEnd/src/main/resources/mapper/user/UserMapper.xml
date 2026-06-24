@@ -161,4 +161,9 @@
           AND deleted_at IS NULL
     </update>
 
+    <update id="updateLastLoginAt">
+        UPDATE users SET last_login_at = NOW()
+        WHERE user_id = #{id} AND deleted_at IS NULL
+    </update>
+
 </mapper>

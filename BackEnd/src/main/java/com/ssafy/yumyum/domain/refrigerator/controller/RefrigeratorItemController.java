@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ssafy.yumyum.domain.refrigerator.dto.ImageAnalysisType;
+import com.ssafy.yumyum.domain.admin.service.ApiUsageService;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisBatchResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemUpdateRequest;
@@ -37,16 +38,28 @@ import lombok.RequiredArgsConstructor;
 public class RefrigeratorItemController {
     private final RefrigeratorItemService refrigeratorItemService;
     private final InventoryImageAnalysisService inventoryImageAnalysisService;
+    private final ApiUsageService apiUsageService;
 
     @PostMapping(value = "/analyze/{analysisType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseBody<InventoryImageAnalysisBatchResponse> analyzeImage(
+            @AuthenticationPrincipal CustomUserDetails user,
             @PathVariable String analysisType,
             @RequestPart("image") MultipartFile image) {
-        InventoryImageAnalysisBatchResponse response = inventoryImageAnalysisService.analyze(
-                ImageAnalysisType.from(analysisType),
-                image
-        );
-        return ResponseUtil.createSuccessResponse(response);
+        long startedAt = System.nanoTime();
+        ImageAnalysisType type = ImageAnalysisType.from(analysisType);
+        try {
+            InventoryImageAnalysisBatchResponse response = inventoryImageAnalysisService.analyze(type, image);
+            apiUsageService.record(user.getId(), type.name(), true, elapsedMillis(startedAt), null);
+            return ResponseUtil.createSuccessResponse(response);
+        } catch (RuntimeException exception) {
+            apiUsageService.record(user.getId(), type.name(), false, elapsedMillis(startedAt),
+                    exception.getClass().getSimpleName());
+            throw exception;
+        }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     @PostMapping("/manual")

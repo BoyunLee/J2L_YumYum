@@ -97,6 +97,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 isNewUser.set(true);
             }
 
+            userRepository.updateLastLoginAt(user.getId());
+
             String accessToken = tokenProvider.generateAccessToken(user);
             String refreshToken = tokenProvider.generateRefreshToken(user);
 
