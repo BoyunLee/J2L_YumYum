@@ -315,8 +315,12 @@ export const useFridgeStore = defineStore('fridge', () => {
     isRecommendingRecipes.value = true
     hasRequestedRecipes.value = true
     recipeRecommendationError.value = ''
+    const recommendationStartedAt = performance.now()
+    let recommendationSucceeded = false
+    let recommendationErrorCode: string | null = null
     try {
       const recommendations = await requestRecipeRecommendations(inventory.value)
+      recommendationSucceeded = true
       recipes.value = recommendations
       lastRecipeInventoryKey.value = inventoryKey
       selectedRecipeId.value = null
@@ -354,12 +358,25 @@ export const useFridgeStore = defineStore('fridge', () => {
         })
       }
     } catch (error) {
+      recommendationErrorCode = error instanceof DOMException && error.name === 'AbortError' ? 'TIMEOUT' : 'REQUEST_FAILED'
       const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'
       recipeRecommendationError.value = recipes.value.length > 0
         ? `異붿쿇 寃곌낵???쒖떆?덉?留???ν븯吏 紐삵뻽?듬땲?? ${message}`
         : message
       throw error
     } finally {
+      try {
+        await apiRequest<void>('/api/usage/recipe-recommendation', {
+          method: 'POST',
+          body: JSON.stringify({
+            success: recommendationSucceeded,
+            durationMs: Math.round(performance.now() - recommendationStartedAt),
+            errorCode: recommendationErrorCode,
+          }),
+        })
+      } catch {
+        // 통계 기록 실패가 사용자 레시피 요청 결과를 덮어쓰지 않도록 합니다.
+      }
       isRecommendingRecipes.value = false
     }
   }
