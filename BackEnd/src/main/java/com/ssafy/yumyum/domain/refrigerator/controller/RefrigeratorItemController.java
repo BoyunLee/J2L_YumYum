@@ -3,6 +3,7 @@ package com.ssafy.yumyum.domain.refrigerator.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,11 +14,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.ssafy.yumyum.domain.refrigerator.dto.ImageAnalysisType;
+import com.ssafy.yumyum.domain.refrigerator.dto.InventoryImageAnalysisResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemResponse;
 import com.ssafy.yumyum.domain.refrigerator.dto.InventoryItemUpdateRequest;
 import com.ssafy.yumyum.domain.refrigerator.dto.ManualInventoryCreateRequest;
 import com.ssafy.yumyum.domain.refrigerator.service.RefrigeratorItemService;
+import com.ssafy.yumyum.domain.refrigerator.service.InventoryImageAnalysisService;
 import com.ssafy.yumyum.global.response.ResponseBody;
 import com.ssafy.yumyum.global.response.ResponseUtil;
 import com.ssafy.yumyum.global.security.service.CustomUserDetails;
@@ -30,6 +36,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RefrigeratorItemController {
     private final RefrigeratorItemService refrigeratorItemService;
+    private final InventoryImageAnalysisService inventoryImageAnalysisService;
+
+    @PostMapping(value = "/analyze/{analysisType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseBody<InventoryImageAnalysisResponse> analyzeImage(
+            @PathVariable String analysisType,
+            @RequestPart("image") MultipartFile image) {
+        InventoryImageAnalysisResponse response = inventoryImageAnalysisService.analyze(
+                ImageAnalysisType.from(analysisType),
+                image
+        );
+        return ResponseUtil.createSuccessResponse(response);
+    }
 
     @PostMapping("/manual")
     public ResponseEntity<ResponseBody<InventoryItemResponse>> createManual(

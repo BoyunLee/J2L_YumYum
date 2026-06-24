@@ -49,7 +49,15 @@ public enum ExceptionType {
     REFRIGERATOR_ITEM_NOT_FOUND(NOT_FOUND, "R001", "존재하지 않는 냉장고 재고입니다."),
 
     // file
-
+    EMPTY_IMAGE_FILE(BAD_REQUEST, "F001", "분석할 이미지 파일을 선택해 주세요."),
+    UNSUPPORTED_IMAGE_TYPE(UNSUPPORTED_MEDIA_TYPE, "F002", "지원하지 않는 이미지 형식입니다."),
+    IMAGE_FILE_TOO_LARGE(PAYLOAD_TOO_LARGE, "F003", "이미지 크기는 10MB 이하여야 합니다."),
+    IMAGE_READ_FAILED(INTERNAL_SERVER_ERROR, "F004", "이미지 파일을 읽지 못했습니다."),
+    INVALID_IMAGE_ANALYSIS_TYPE(BAD_REQUEST, "F005", "OCR 또는 BARCODE 분석 유형을 선택해 주세요."),
+    BARCODE_NOT_DETECTED(BAD_REQUEST, "F006", "사진에서 바코드를 찾지 못했습니다. 바코드가 선명하게 보이도록 다시 촬영해 주세요."),
+    BARCODE_PRODUCT_NOT_FOUND(NOT_FOUND, "F007", "인식한 바코드에 해당하는 제품을 식품안전나라에서 찾지 못했습니다."),
+    FOOD_SAFETY_API_ERROR(BAD_GATEWAY, "F008", "식품안전나라 상품 조회에 실패했습니다."),
+    FOOD_SAFETY_API_KEY_NOT_CONFIGURED(INTERNAL_SERVER_ERROR, "F009", "식품안전나라 API 인증키가 설정되지 않았습니다."),
 
     // 
 

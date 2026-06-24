@@ -9,6 +9,7 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -93,6 +94,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ExceptionType.NOT_SUPPORTED_METHOD.getStatus())
                 .body(ResponseUtil.createFailureResponse(ExceptionType.NOT_SUPPORTED_METHOD));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ResponseBody<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        return ResponseEntity
+                .status(ExceptionType.IMAGE_FILE_TOO_LARGE.getStatus())
+                .body(ResponseUtil.createFailureResponse(ExceptionType.IMAGE_FILE_TOO_LARGE));
     }
 
     @ExceptionHandler(Exception.class)
