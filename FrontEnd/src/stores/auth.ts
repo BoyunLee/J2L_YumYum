@@ -103,11 +103,20 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
+  function expireSession() {
+    logout()
+    notice.value = '로그인이 만료되었습니다. 다시 로그인해 주세요.'
+  }
+
   async function fetchProfile() {
     const response = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { Authorization: `Bearer ${accessToken.value}` },
     })
     const body = await response.json().catch(() => null)
+    if (response.status === 401) {
+      expireSession()
+      throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+    }
     if (!response.ok || !body?.data) throw new Error(body?.message ?? body?.msg ?? '내 정보를 불러오지 못했습니다.')
     profile.value = body.data
     return body.data as UserProfile
@@ -120,6 +129,10 @@ export const useAuthStore = defineStore('auth', () => {
       body: JSON.stringify(form),
     })
     const body = await response.json().catch(() => null)
+    if (response.status === 401) {
+      expireSession()
+      throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+    }
     if (!response.ok || !body?.data) throw new Error(body?.message ?? body?.msg ?? '내 정보를 저장하지 못했습니다.')
     profile.value = body.data
     return body.data as UserProfile
@@ -144,6 +157,10 @@ export const useAuthStore = defineStore('auth', () => {
       body: JSON.stringify(form),
     })
     const body = await response.json().catch(() => null)
+    if (response.status === 401) {
+      expireSession()
+      throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+    }
     if (!response.ok || !body?.data) {
       throw new Error(body?.msg ?? '추가 정보를 저장하지 못했습니다.')
     }
@@ -170,5 +187,6 @@ export const useAuthStore = defineStore('auth', () => {
     updateProfile,
     unlink,
     logout,
+    expireSession,
   }
 })

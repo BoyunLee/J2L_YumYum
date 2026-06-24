@@ -196,7 +196,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     const contentType = response.headers.get('content-type') ?? ''
     const body = contentType.includes('application/json') ? await response.json() : null
     if (!response.ok) {
-      if (response.status === 401) throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+      if (response.status === 401) {
+        auth.expireSession()
+        throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+      }
       if (response.status === 403) throw new Error('재고를 관리할 권한이 없습니다.')
       throw new Error(body?.message ?? body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
     }
