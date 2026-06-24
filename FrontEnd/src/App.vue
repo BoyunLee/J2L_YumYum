@@ -15,12 +15,14 @@ import SiteFooter from './components/SiteFooter.vue'
 import LoginView from './views/LoginView.vue'
 import OnboardingView from './views/OnboardingView.vue'
 import MyPageView from './views/MyPageView.vue'
+import AdminView from './views/AdminView.vue'
 
 const store = useFridgeStore()
 const { currentView } = storeToRefs(store)
 const auth = useAuthStore()
 const { isAuthenticated, requiresOnboarding } = storeToRefs(auth)
 const isHandlingCallback = ref(window.location.pathname === '/login/callback')
+const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/')
 
 onMounted(() => {
   if (!isHandlingCallback.value) return
@@ -32,7 +34,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="isHandlingCallback" class="oauth-callback" role="status">
+  <AdminView v-if="isAdminRoute" />
+  <div v-else-if="isHandlingCallback" class="oauth-callback" role="status">
     <div class="callback-spinner" aria-hidden="true"></div>
     <p>로그인을 완료하고 있어요…</p>
   </div>
