@@ -745,6 +745,17 @@ em {
   background: #eff6ff;
 }
 
+.notice-strip.notice {
+  border-color: var(--blue-soft);
+  background: #eff6ff;
+}
+
+.icon-box.notice,
+.badge.notice {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
 .filter-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 1.5rem;

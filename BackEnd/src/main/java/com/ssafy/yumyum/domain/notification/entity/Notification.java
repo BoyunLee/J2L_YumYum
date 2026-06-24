@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 public class Notification {
     private Long id;
+    private String notificationType;
     private String expirationStatus;
     private String title;
     private String content;

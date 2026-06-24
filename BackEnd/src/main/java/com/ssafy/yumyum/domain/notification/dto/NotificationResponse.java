@@ -13,7 +13,9 @@ public record NotificationResponse(
         boolean read) {
 
     public static NotificationResponse from(Notification notification) {
-        String type = "EXPIRED".equals(notification.getExpirationStatus()) ? "expired" : "expiry";
+        String type = "ADMIN_PUSH".equals(notification.getNotificationType())
+                ? "notice"
+                : ("EXPIRED".equals(notification.getExpirationStatus()) ? "expired" : "expiry");
         return new NotificationResponse(
                 notification.getId(), type, notification.getTitle(), notification.getContent(),
                 notification.getCreatedAt(), notification.isRead());

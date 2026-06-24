@@ -37,6 +37,7 @@ export function daysLabel(daysLeft: number) {
 }
 
 export function notificationLabel(type: string) {
+  if (type === 'notice') return '공지'
   return {
     expired: '만료됨',
     expiry: '임박',

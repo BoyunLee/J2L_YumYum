@@ -7,7 +7,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:808
 
 export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
 export type Category = 'dairy' | 'meat' | 'vegetable' | 'fruit' | 'etc'
-export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory'
+export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory' | 'notice'
 export type ImageAnalysisType = 'OCR' | 'BARCODE'
 
 export interface InventoryItem {
@@ -71,7 +71,7 @@ interface ApiLatestRecipeRecommendations {
 
 interface ApiNotification {
   id: number
-  type: 'expiry' | 'expired'
+  type: 'expiry' | 'expired' | 'notice'
   title: string
   message: string
   createdAt: string

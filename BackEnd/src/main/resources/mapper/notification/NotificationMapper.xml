@@ -45,7 +45,7 @@
     </insert>
 
     <select id="findAllByUserId" resultType="com.ssafy.yumyum.domain.notification.entity.Notification">
-        SELECT notification_id AS id, expiration_status AS expirationStatus,
+        SELECT notification_id AS id, notification_type AS notificationType, expiration_status AS expirationStatus,
                title, content, is_read AS `read`, created_at AS createdAt
         FROM notifications
         WHERE user_id = #{userId}
