@@ -1,0 +1,42 @@
+flowchart LR
+  user["일반 사용자"]
+  admin["관리자"]
+  oauth["OAuth Provider"]
+  external["외부 분석 Provider"]
+  batchSystem["스케줄러"]
+
+  subgraph app["YumYum"]
+    login["OAuth 로그인"]
+    onboarding["온보딩 입력"]
+    inventory["냉장고 재고 관리"]
+    analyze["OCR/바코드 분석"]
+    meal["식단 기록"]
+    recipe["레시피 추천"]
+    notification["알림 조회/읽음 처리"]
+    adminLogin["관리자 로그인"]
+    dashboard["운영 대시보드 조회"]
+    batch["유통기한 배치 실행"]
+    notice["공지 발송"]
+    usage["API 사용량 확인"]
+    expirationBatch["유통기한 알림 생성"]
+  end
+
+  user --> login
+  login --> oauth
+  user --> onboarding
+  user --> inventory
+  inventory --> analyze
+  analyze --> external
+  user --> meal
+  user --> recipe
+  recipe --> external
+  user --> notification
+
+  admin --> adminLogin
+  admin --> dashboard
+  admin --> batch
+  admin --> notice
+  admin --> usage
+  batchSystem --> expirationBatch
+  expirationBatch --> notification
+  admin --> expirationBatch

@@ -1,0 +1,29 @@
+flowchart TD
+  start["서비스 접속"] --> login["OAuth 로그인"]
+  login --> newUser{"신규/Guest 사용자?"}
+  newUser -->|Yes| onboarding["온보딩 입력"]
+  newUser -->|No| dashboard["대시보드"]
+  onboarding --> dashboard
+  dashboard --> inventory["냉장고 목록"]
+  inventory --> add["재고 등록\n수기/OCR/바코드"]
+  add --> inventory
+  dashboard --> meal["식단 기록\n음식 검색/저장"]
+  meal --> summary["일일 영양 요약 갱신"]
+  dashboard --> recipe["레시피 추천 생성"]
+  recipe --> recipeDetail["추천 상세"]
+  dashboard --> notification["알림 조회/읽음 처리"]
+  dashboard --> admin["관리자 화면 확인"]
+
+  add --> analyze{"OCR/바코드 사용?"}
+  analyze -->|Yes| autoFill["분석 결과 폼 자동 채움"]
+  analyze -->|No| manual["수기 입력 유지"]
+  autoFill --> inventory
+  manual --> inventory
+
+  recipe --> mode{"외부 API 성공?"}
+  mode -->|live 성공| recipeDetail
+  mode -->|실패/fallback| mockRecipe["mock 추천 결과 표시"]
+  mockRecipe --> recipeDetail
+
+  admin --> usage["API 사용량 확인"]
+  admin --> batch["유통기한 배치 확인"]

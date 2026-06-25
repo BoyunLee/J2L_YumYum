@@ -1,0 +1,80 @@
+erDiagram
+  users ||--|| refrigerators : owns
+  refrigerators ||--o{ refrigerator_items : contains
+  refrigerator_items ||--o{ refrigerator_item_logs : records
+  food_nutrition ||--o{ refrigerator_items : maps
+  users ||--o{ meal_logs : writes
+  meal_logs ||--o{ meal_log_items : contains
+  food_nutrition ||--o{ meal_log_items : maps
+  recipes ||--o{ recipe_ingredients : requires
+  food_nutrition ||--o{ recipe_ingredients : ingredient
+  users ||--o{ recipe_recommendation_logs : receives
+  recipes ||--o{ recipe_recommendation_logs : recommended
+  users ||--o{ notifications : receives
+  refrigerator_items ||--o{ notifications : triggers
+  users ||--o{ user_push_tokens : owns
+  admin_users ||--o{ admin_logs : writes
+  admin_users ||--o{ admin_push_history : sends
+  users ||--o{ api_usage_logs : calls
+
+  users {
+    bigint user_id PK
+    enum provider
+    varchar provider_user_id
+    varchar nickname
+    enum role
+  }
+
+  refrigerator_items {
+    bigint item_id PK
+    bigint refrigerator_id FK
+    varchar food_code FK
+    varchar item_name
+    decimal quantity
+    date expiration_date
+  }
+
+  meal_logs {
+    bigint meal_log_id PK
+    bigint user_id FK
+    enum log_type
+    enum meal_type
+  }
+
+  meal_log_items {
+    bigint meal_log_item_id PK
+    bigint meal_log_id FK
+    enum item_type
+    varchar food_code FK
+    json recipe_payload
+  }
+
+  notifications {
+    bigint notification_id PK
+    bigint user_id FK
+    bigint refrigerator_item_id FK
+    enum notification_type
+    boolean is_read
+  }
+
+  api_usage_logs {
+    bigint api_usage_log_id PK
+    bigint user_id FK
+    enum api_type
+    boolean success
+    bigint duration_ms
+  }
+
+  batch_job_history {
+    bigint batch_history_id PK
+    varchar job_name
+    enum trigger_type
+    enum status
+    int processed_count
+  }
+
+  admin_users {
+    bigint admin_id PK
+    varchar login_id
+    enum role
+  }
