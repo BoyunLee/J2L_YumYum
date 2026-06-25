@@ -7,7 +7,7 @@ export function iconPath(icon: string) {
     plus: 'M12 5v14M5 12h14',
     search: 'm21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z',
     filter: 'M4 5h16l-6 7v5l-4 2v-7L4 5Z',
-    calendar: 'M7 3v4M17 3v4M4 9h20M6 5h18v17H6z',
+    calendar: 'M8 3v4M16 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z',
     alert: 'M12 8v5M12 17h.01M21 19 12 4 3 19h18Z',
     trend: 'M4 17 10 11l4 4 7-8M15 7h6v6',
     clock: 'M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z',

@@ -421,6 +421,10 @@ main {
   white-space: nowrap;
 }
 
+.nav-item svg {
+  flex: 0 0 auto;
+}
+
 .nav-item:hover {
   background: var(--gray-100);
 }
