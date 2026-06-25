@@ -103,6 +103,8 @@ export interface NotificationItem {
   read: boolean
 }
 
+const visibleNotificationTypes = new Set<NotificationType>(['expiry', 'expired', 'notice'])
+
 const daysBetween = (date: string) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -259,14 +261,16 @@ export const useFridgeStore = defineStore('fridge', () => {
 
   async function loadNotifications() {
     const items = await apiRequest<ApiNotification[]>('/api/notifications')
-    notifications.value = items.map((item) => ({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      message: item.message,
-      time: item.createdAt.replace('T', ' ').slice(0, 16),
-      read: item.read,
-    }))
+    notifications.value = items
+      .map((item) => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        message: item.message,
+        time: item.createdAt.replace('T', ' ').slice(0, 16),
+        read: item.read,
+      }))
+      .filter((item) => visibleNotificationTypes.has(item.type))
   }
 
   async function loadSavedRecipes() {
@@ -333,17 +337,6 @@ export const useFridgeStore = defineStore('fridge', () => {
         ...recipe,
         id: saved.mealLogItemIds[index] ?? recipe.id,
       }))
-      const firstRecipe = recipes.value[0]
-      if (firstRecipe) {
-        notifications.value.unshift({
-          id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
-          type: 'recipe',
-          title: '?덈줈??AI ?덉떆??異붿쿇',
-          message: `?꾩옱 蹂댁쑀???щ즺濡?'${firstRecipe.name}'??瑜? 異붿쿇?댁슂.`,
-          time: new Date().toLocaleString('sv-SE'),
-          read: false,
-        })
-      }
     } catch (error) {
       recommendationErrorCode = error instanceof DOMException && error.name === 'AbortError' ? 'TIMEOUT' : 'REQUEST_FAILED'
       const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'

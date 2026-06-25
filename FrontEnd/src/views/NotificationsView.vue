@@ -12,14 +12,12 @@
       <button type="button" :class="{ active: notificationFilter === 'all' }" @click="notificationFilter = 'all'">전체 ({{ notifications.length }})</button>
       <button type="button" :class="{ active: notificationFilter === 'expired' }" @click="notificationFilter = 'expired'">만료됨</button>
       <button type="button" :class="{ active: notificationFilter === 'expiry' }" @click="notificationFilter = 'expiry'">임박</button>
-      <button type="button" :class="{ active: notificationFilter === 'recipe' }" @click="notificationFilter = 'recipe'">레시피</button>
-      <button type="button" :class="{ active: notificationFilter === 'inventory' }" @click="notificationFilter = 'inventory'">재고</button>
       <button type="button" :class="{ active: notificationFilter === 'notice' }" @click="notificationFilter = 'notice'">공지</button>
     </section>
 
     <div class="notification-list">
       <article v-for="notification in filteredNotifications" :key="notification.id" class="notification-card" :class="{ unread: !notification.read }">
-        <span class="icon-box" :class="notification.type"><svg viewBox="0 0 24 24"><path :d="iconPath(notification.type === 'recipe' ? 'chef' : notification.type === 'inventory' ? 'package' : notification.type === 'notice' ? 'bell' : 'alert')" /></svg></span>
+        <span class="icon-box" :class="notification.type"><svg viewBox="0 0 24 24"><path :d="iconPath(notification.type === 'notice' ? 'bell' : 'alert')" /></svg></span>
         <div>
           <h3>{{ notification.title }}<i v-if="!notification.read"></i></h3>
           <p>{{ notification.message }}</p>
@@ -38,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useFridgeStore } from '../stores/fridge'
 import { iconPath, notificationLabel } from '../utils/uiHelpers'
@@ -46,7 +44,7 @@ import { iconPath, notificationLabel } from '../utils/uiHelpers'
 const store = useFridgeStore()
 const { notifications, unreadCount } = storeToRefs(store)
 
-const notificationFilter = ref<'all' | string>('all')
+const notificationFilter = ref<'all' | 'expired' | 'expiry' | 'notice'>('all')
 
 onMounted(() => store.loadNotifications())
 
