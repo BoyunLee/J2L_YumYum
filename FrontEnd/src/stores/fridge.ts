@@ -26,7 +26,7 @@ export interface InventoryItem {
 export interface InventoryForm {
   name: string
   category: Category
-  quantity: string
+  quantity: string | number
   unit: string
   expiryDate: string
   location: string

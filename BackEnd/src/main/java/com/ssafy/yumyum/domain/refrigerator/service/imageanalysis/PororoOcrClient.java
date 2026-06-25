@@ -33,11 +33,13 @@ public class PororoOcrClient {
     private final OcrImageCompressor ocrImageCompressor;
 
     public PororoOcrText extractText(byte[] imageBytes, String contentType, String originalFilename) {
+        long startedAt = System.nanoTime();
         if (!properties.isConfigured()) {
             throw new BusinessException(ExceptionType.OCR_ANALYSIS_FAILED);
         }
 
         OcrImageCompressor.CompressedImage compressedImage = ocrImageCompressor.compress(imageBytes, contentType);
+        long compressionMs = elapsedMillis(startedAt);
         String filename = resolveFilename(originalFilename, compressedImage.contentType());
         HttpHeaders partHeaders = new HttpHeaders();
         partHeaders.setContentDispositionFormData("image", filename);
@@ -66,12 +68,21 @@ public class PororoOcrClient {
                     compressedImage.height(),
                     compressedImage.compressed()
             );
+            long requestStartedAt = System.nanoTime();
             ResponseEntity<String> response = restTemplate.postForEntity(
                     properties.url(),
                     new HttpEntity<>(body, headers),
                     String.class
             );
-            return parseResponse(response.getBody());
+            PororoOcrText result = parseResponse(response.getBody());
+            log.info(
+                    "Pororo OCR completed in {} ms (compression={} ms, request={} ms, lines={})",
+                    elapsedMillis(startedAt),
+                    compressionMs,
+                    elapsedMillis(requestStartedAt),
+                    result.lines().size()
+            );
+            return result;
         } catch (RestClientException | IOException exception) {
             log.error("Failed to call Pororo OCR service", exception);
             throw new BusinessException(ExceptionType.OCR_ANALYSIS_FAILED);
@@ -124,6 +135,10 @@ public class PororoOcrClient {
             String text,
             List<String> lines
     ) {
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     private static final class NamedByteArrayResource extends ByteArrayResource {

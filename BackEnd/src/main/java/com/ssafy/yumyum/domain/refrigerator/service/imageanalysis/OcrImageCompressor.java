@@ -7,12 +7,16 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Objects;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -30,6 +34,19 @@ public class OcrImageCompressor {
     private final OcrImageCompressionProperties properties;
 
     public CompressedImage compress(byte[] imageBytes, String contentType) {
+        ImageDimensions dimensions = readDimensions(imageBytes);
+        if (canReuseOriginalJpeg(imageBytes, contentType, dimensions)) {
+            return new CompressedImage(
+                    imageBytes,
+                    MediaType.IMAGE_JPEG_VALUE,
+                    dimensions.width(),
+                    dimensions.height(),
+                    dimensions.width(),
+                    dimensions.height(),
+                    false
+            );
+        }
+
         BufferedImage sourceImage = readImage(imageBytes);
         if (sourceImage == null) {
             log.warn("Skipping OCR image compression because the image could not be decoded");
@@ -110,9 +127,9 @@ public class OcrImageCompressor {
         try {
             graphics.setColor(Color.WHITE);
             graphics.fillRect(0, 0, width, height);
-            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+            graphics.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_SPEED);
             graphics.drawImage(sourceImage, 0, 0, width, height, null);
         } finally {
             graphics.dispose();
@@ -122,14 +139,15 @@ public class OcrImageCompressor {
 
     private byte[] encodeJpeg(BufferedImage image, float quality) {
         ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             ImageOutputStream imageOutputStream = ImageIO.createImageOutputStream(outputStream)) {
             ImageWriteParam writeParam = writer.getDefaultWriteParam();
             if (writeParam.canWriteCompressed()) {
                 writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
                 writeParam.setCompressionQuality(quality);
             }
 
-            writer.setOutput(ImageIO.createImageOutputStream(outputStream));
+            writer.setOutput(imageOutputStream);
             writer.write(null, new IIOImage(image, null, null), writeParam);
             writer.dispose();
             return outputStream.toByteArray();
@@ -137,6 +155,49 @@ public class OcrImageCompressor {
             writer.dispose();
             throw new BusinessException(ExceptionType.OCR_ANALYSIS_FAILED);
         }
+    }
+
+    private ImageDimensions readDimensions(byte[] imageBytes) {
+        try (ImageInputStream inputStream = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
+            if (inputStream == null) {
+                return null;
+            }
+
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(inputStream);
+            if (!readers.hasNext()) {
+                return null;
+            }
+
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(inputStream, true, true);
+                return new ImageDimensions(reader.getWidth(0), reader.getHeight(0));
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException exception) {
+            log.debug("Failed to read image dimensions before OCR compression", exception);
+            return null;
+        }
+    }
+
+    private boolean canReuseOriginalJpeg(byte[] imageBytes, String contentType, ImageDimensions dimensions) {
+        if (!isJpegContentType(contentType) || dimensions == null) {
+            return false;
+        }
+
+        return imageBytes.length <= properties.maxBytes()
+                && dimensions.width() <= Math.max(1, properties.maxWidth())
+                && dimensions.height() <= Math.max(1, properties.maxHeight());
+    }
+
+    private boolean isJpegContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return false;
+        }
+
+        String normalized = contentType.trim().toLowerCase();
+        return MediaType.IMAGE_JPEG_VALUE.equals(normalized) || "image/jpg".equals(normalized);
     }
 
     private String normalizeContentType(String contentType) {
@@ -159,5 +220,8 @@ public class OcrImageCompressor {
             int height,
             boolean compressed
     ) {
+    }
+
+    private record ImageDimensions(int width, int height) {
     }
 }

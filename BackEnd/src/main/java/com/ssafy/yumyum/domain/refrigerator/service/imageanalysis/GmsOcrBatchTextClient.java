@@ -150,6 +150,7 @@ public class GmsOcrBatchTextClient {
     private final GmsOcrProperties properties;
 
     public OcrResult analyze(PororoOcrClient.PororoOcrText ocrText, String originalFilename) {
+        long startedAt = System.nanoTime();
         if (!properties.isConfigured()) {
             throw new BusinessException(ExceptionType.OCR_API_KEY_NOT_CONFIGURED);
         }
@@ -190,7 +191,14 @@ public class GmsOcrBatchTextClient {
                     new HttpEntity<>(payload, headers),
                     String.class
             );
-            return parseCompletionResponse(response.getBody());
+            OcrResult result = parseCompletionResponse(response.getBody());
+            log.info(
+                    "GMS OCR structuring completed in {} ms (items={}, detected={})",
+                    elapsedMillis(startedAt),
+                    result.items().size(),
+                    result.detected()
+            );
+            return result;
         } catch (RestClientException exception) {
             log.error("Failed to structure OCR text", exception);
             throw new BusinessException(ExceptionType.OCR_ANALYSIS_FAILED);
@@ -460,6 +468,10 @@ public class GmsOcrBatchTextClient {
         return itemCount == 1
                 ? "OCR 텍스트를 바탕으로 상품 1개를 정리했습니다."
                 : "OCR 텍스트를 바탕으로 상품 " + itemCount + "개를 정리했습니다.";
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     public record OcrResult(
