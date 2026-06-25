@@ -4,15 +4,8 @@
 
 ## Quick Start
 
-1. Copy `.env.docker.example` to `.env`.
-2. Fill in at least:
-   - `JWT_SECRET_KEY`
-   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-   - `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`
-   - `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`
-   - `GMS_API_KEY` and `GMS_KEY` if you use recipe recommendation or OCR JSON structuring
-   - `FOOD_SAFETY_API_KEY` if you use barcode product lookup
-3. Start containers:
+1. Backend runtime settings are loaded from `BackEnd/src/main/resources/application.properties`.
+2. Start containers:
 
 ```bash
 docker compose up --build
@@ -37,7 +30,7 @@ The frontend starts login from `http://localhost:5173` and the backend OAuth2 ca
 
 ## Notes
 
-- The DB schema is initialized from `BackEnd/src/main/resources/sql/yumyum.sql` on the first MySQL container startup.
+- On the first MySQL container startup, `docker/mysql/00-init-yumyum.sh` runs `BackEnd/src/main/resources/sql/yumyum.sql` first and then loads `BackEnd/src/main/resources/sql/SSAFY_COACH_Dump.sql` into `food_nutrition`.
 - OCR requests now flow through `Pororo OCR -> GPT-5-nano JSON structuring`.
 - The first OCR request can take longer because the Pororo model may need to be downloaded inside the `pororo-ocr` container.
 - If you need to recreate the database from scratch, run `docker compose down -v` and start again.
