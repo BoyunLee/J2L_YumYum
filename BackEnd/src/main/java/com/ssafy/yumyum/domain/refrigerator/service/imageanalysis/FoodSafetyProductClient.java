@@ -11,12 +11,15 @@ import org.springframework.web.util.UriUtils;
 
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
+import com.ssafy.yumyum.global.config.IntegrationModeProperties;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FoodSafetyProductClient {
@@ -24,6 +27,7 @@ public class FoodSafetyProductClient {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final IntegrationModeProperties integrationModeProperties;
 
     @Value("${food-safety.api.base-url:http://openapi.foodsafetykorea.go.kr/api}")
     private String baseUrl;
@@ -32,6 +36,21 @@ public class FoodSafetyProductClient {
     private String apiKey;
 
     public FoodSafetyProduct findByBarcode(String barcode) {
+        if (integrationModeProperties.isMock()) {
+            return mockProduct(barcode);
+        }
+        if (integrationModeProperties.isFallback()) {
+            try {
+                return findByBarcodeLive(barcode);
+            } catch (BusinessException exception) {
+                log.warn("Food safety lookup failed in fallback mode: code={}", exception.getExceptionType().getCode());
+                return mockProduct(barcode);
+            }
+        }
+        return findByBarcodeLive(barcode);
+    }
+
+    private FoodSafetyProduct findByBarcodeLive(String barcode) {
         validateApiKey();
         try {
             String responseBody = restTemplate.getForObject(buildRequestUri(barcode), String.class);
@@ -41,6 +60,17 @@ public class FoodSafetyProductClient {
         } catch (RestClientException | JacksonException exception) {
             throw new BusinessException(ExceptionType.FOOD_SAFETY_API_ERROR);
         }
+    }
+
+    private FoodSafetyProduct mockProduct(String barcode) {
+        return new FoodSafetyProduct(
+                barcode == null || barcode.isBlank() ? "8800000000000" : barcode,
+                "데모 우유 900ml",
+                "제조일로부터 10일",
+                "유가공품",
+                "YumYum Demo",
+                "DEMO-FOOD-SAFETY"
+        );
     }
 
     private URI buildRequestUri(String barcode) {

@@ -48,6 +48,39 @@ services:
       dockerfile: Dockerfile
     container_name: yumyum-backend
     restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-yumyum}
+      MYSQL_USER: ${MYSQL_USER:-ssafy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ssafy}
+      COMPANY_ORIGIN_URL: ${COMPANY_ORIGIN_URL:-http://localhost:5173}
+      COMPANY_TEMP_URL: ${COMPANY_TEMP_URL:-http://localhost}
+      COMPANY_TEMP_URL_PORT: ${COMPANY_TEMP_URL_PORT:-http://localhost:8080}
+      INTEGRATION_MODE: ${INTEGRATION_MODE:-mock}
+      JWT_ISSUER: ${JWT_ISSUER:-J2L_yumyum}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-demo-secret-change-me-32-bytes-minimum}
+      JWT_ACCESS_EXPIRED_AT: ${JWT_ACCESS_EXPIRED_AT:-3600000}
+      JWT_REFRESH_EXPIRED_AT: ${JWT_REFRESH_EXPIRED_AT:-604800000}
+      ADMIN_BOOTSTRAP_ENABLED: ${ADMIN_BOOTSTRAP_ENABLED:-false}
+      ADMIN_BOOTSTRAP_LOGIN_ID: ${ADMIN_BOOTSTRAP_LOGIN_ID:-}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+      ADMIN_BOOTSTRAP_ROLE: ${ADMIN_BOOTSTRAP_ROLE:-SUPER_ADMIN}
+      GMS_API_URL: ${GMS_API_URL:-https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions}
+      GMS_API_MODEL: ${GMS_API_MODEL:-gpt-5-nano}
+      GMS_API_KEY: ${GMS_API_KEY:-}
+      GMS_KEY: ${GMS_KEY:-}
+      PORORO_OCR_URL: ${PORORO_OCR_URL:-http://pororo-ocr:8000/ocr}
+      PORORO_OCR_LANG: ${PORORO_OCR_LANG:-ko}
+      FOOD_SAFETY_API_BASE_URL: ${FOOD_SAFETY_API_BASE_URL:-http://openapi.foodsafetykorea.go.kr/api}
+      FOOD_SAFETY_API_KEY: ${FOOD_SAFETY_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy
@@ -62,6 +95,8 @@ services:
       dockerfile: Dockerfile
     container_name: yumyum-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     depends_on:
       - backend
     ports:

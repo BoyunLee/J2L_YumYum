@@ -1,0 +1,101 @@
+classDiagram
+direction LR
+
+  class IntegrationModeProperties {
+    +String mode
+    +isMock()
+    +isLive()
+    +isFallback()
+  }
+
+  class RecipeRecommendationProvider {
+    <<interface>>
+    +recommend(inventory)
+  }
+  class ConfigurableRecipeRecommendationProvider {
+    +recommend(inventory)
+  }
+  class MockRecipeRecommendationProvider {
+    +recommend(inventory)
+  }
+  class GmsRecipeRecommendationProvider {
+    +recommend(inventory)
+    -payload(inventory)
+    -parseCompletionResponse(responseBody)
+  }
+  class GmsOcrProperties {
+    +String apiKey
+    +String url
+    +String model
+    +isConfigured()
+  }
+
+  class InventoryImageAnalysisService {
+    +analyze(type, image)
+    -validate(image)
+  }
+  class InventoryImageAnalysisProvider {
+    <<interface>>
+    +analyze(type, bytes, contentType, filename)
+  }
+  class FoodSafetyInventoryImageAnalysisProvider {
+    +analyze(type, bytes, contentType, filename)
+    -analyzeLive(type, bytes, contentType, filename)
+    -mockAnalysis(type)
+    -parseQuantity(productName)
+    -mapCategory(productName, foodType)
+  }
+  class PlaceholderInventoryImageAnalysisProvider {
+    +analyze(type, bytes, contentType, filename)
+  }
+
+  class BarcodeDecoder {
+    <<interface>>
+    +decode(bytes)
+  }
+  class ZxingBarcodeDecoder {
+    +decode(bytes)
+  }
+  class PororoOcrClient {
+    +extractText(bytes, contentType, filename)
+  }
+  class GmsOcrBatchTextClient {
+    +analyze(ocrText, originalFilename)
+  }
+  class FoodSafetyProductClient {
+    +findByBarcode(barcode)
+  }
+  class OcrImageCompressor {
+    +compress(bytes, contentType)
+  }
+  class FoodSafetyProduct {
+    +String barcode
+    +String productName
+    +String foodType
+    +String manufacturer
+    +String shelfLife
+  }
+  class InventoryImageAnalysisBatchResponse
+  class InventoryImageAnalysisItemResponse
+  class RecipeRecommendationItemRequest
+
+  RecipeRecommendationProvider <|.. ConfigurableRecipeRecommendationProvider
+  ConfigurableRecipeRecommendationProvider --> IntegrationModeProperties : selects mode
+  ConfigurableRecipeRecommendationProvider --> MockRecipeRecommendationProvider : mock/fallback
+  ConfigurableRecipeRecommendationProvider --> GmsRecipeRecommendationProvider : live
+  GmsRecipeRecommendationProvider --> GmsOcrProperties : endpoint/key/model
+  GmsRecipeRecommendationProvider ..> RecipeRecommendationItemRequest : returns
+
+  InventoryImageAnalysisService --> InventoryImageAnalysisProvider
+  InventoryImageAnalysisProvider <|.. FoodSafetyInventoryImageAnalysisProvider
+  InventoryImageAnalysisProvider <|.. PlaceholderInventoryImageAnalysisProvider
+  FoodSafetyInventoryImageAnalysisProvider --> IntegrationModeProperties : selects mode
+  FoodSafetyInventoryImageAnalysisProvider --> BarcodeDecoder
+  BarcodeDecoder <|.. ZxingBarcodeDecoder
+  FoodSafetyInventoryImageAnalysisProvider --> PororoOcrClient : OCR text
+  FoodSafetyInventoryImageAnalysisProvider --> GmsOcrBatchTextClient : OCR structuring
+  FoodSafetyInventoryImageAnalysisProvider --> FoodSafetyProductClient : barcode lookup
+  FoodSafetyInventoryImageAnalysisProvider --> OcrImageCompressor
+  FoodSafetyProductClient ..> FoodSafetyProduct : returns
+  FoodSafetyInventoryImageAnalysisProvider ..> InventoryImageAnalysisBatchResponse : returns
+  InventoryImageAnalysisBatchResponse *-- "*" InventoryImageAnalysisItemResponse

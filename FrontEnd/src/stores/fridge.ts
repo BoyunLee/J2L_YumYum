@@ -1,7 +1,6 @@
 ﻿import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
-import { requestRecipeRecommendations } from '../api/recipeRecommendation'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
@@ -371,10 +370,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     if (!response.ok) {
       if (response.status === 401) {
         auth.expireSession()
-        throw new Error('濡쒓렇?몄씠 留뚮즺?섏뿀?듬땲?? ?ㅼ떆 濡쒓렇?명빐 二쇱꽭??')
+        throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
       }
-      if (response.status === 403) throw new Error('?ш퀬瑜?愿由ы븷 沅뚰븳???놁뒿?덈떎.')
-      throw new Error(body?.message ?? body?.msg ?? `?붿껌??泥섎━?섏? 紐삵뻽?듬땲?? (HTTP ${response.status})`)
+      if (response.status === 403) throw new Error('요청을 처리할 권한이 없습니다.')
+      throw new Error(body?.message ?? body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
     }
     return body?.data as T
   }
@@ -451,7 +450,7 @@ export const useFridgeStore = defineStore('fridge', () => {
     } catch (error) {
       recipeRecommendationError.value = error instanceof Error
         ? error.message
-        : '??λ맂 ?덉떆?쇰? 遺덈윭?ㅼ? 紐삵뻽?듬땲??'
+        : '저장된 레시피를 불러오지 못했습니다.'
       throw error
     } finally {
       isLoadingSavedRecipes.value = false
@@ -543,57 +542,23 @@ export const useFridgeStore = defineStore('fridge', () => {
     isRecommendingRecipes.value = true
     hasRequestedRecipes.value = true
     recipeRecommendationError.value = ''
-    const recommendationStartedAt = performance.now()
-    let recommendationSucceeded = false
-    let recommendationErrorCode: string | null = null
     try {
-      const recommendations = await requestRecipeRecommendations(inventory.value)
-      recommendationSucceeded = true
-      recipes.value = recommendations
+      const response = await apiRequest<ApiLatestRecipeRecommendations>('/api/meal-logs/recommendations/generate', {
+        method: 'POST',
+      })
+      recipes.value = response.recipes.map((recipe, index) => ({
+        ...recipe,
+        gradient: recipeGradients[index % recipeGradients.length],
+      }))
       lastRecipeInventoryKey.value = inventoryKey
       selectedRecipeId.value = null
-      const saved = await apiRequest<{ mealLogId: number; mealLogItemIds: number[] }>('/api/meal-logs/recommendations', {
-        method: 'POST',
-        body: JSON.stringify({
-          recipes: recommendations.map((recipe) => ({
-            name: recipe.name,
-            description: recipe.description,
-            matchRate: recipe.matchRate,
-            cookTime: recipe.cookTime,
-            servings: recipe.servings,
-            difficulty: recipe.difficulty,
-            calories: recipe.calories,
-            availableIngredients: recipe.availableIngredients,
-            missingIngredients: recipe.missingIngredients,
-            steps: recipe.steps,
-            tips: recipe.tips,
-          })),
-        }),
-      })
-      recipes.value = recommendations.map((recipe, index) => ({
-        ...recipe,
-        id: saved.mealLogItemIds[index] ?? recipe.id,
-      }))
     } catch (error) {
-      recommendationErrorCode = error instanceof DOMException && error.name === 'AbortError' ? 'TIMEOUT' : 'REQUEST_FAILED'
-      const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'
+      const message = error instanceof Error ? error.message : '레시피를 추천받지 못했습니다.'
       recipeRecommendationError.value = recipes.value.length > 0
-        ? `異붿쿇 寃곌낵???쒖떆?덉?留???ν븯吏 紐삵뻽?듬땲?? ${message}`
+        ? `추천 결과는 표시했지만 새로 저장하지 못했습니다. ${message}`
         : message
       throw error
     } finally {
-      try {
-        await apiRequest<void>('/api/usage/recipe-recommendation', {
-          method: 'POST',
-          body: JSON.stringify({
-            success: recommendationSucceeded,
-            durationMs: Math.round(performance.now() - recommendationStartedAt),
-            errorCode: recommendationErrorCode,
-          }),
-        })
-      } catch {
-        // 통계 기록 실패가 사용자 레시피 요청 결과를 덮어쓰지 않도록 합니다.
-      }
       isRecommendingRecipes.value = false
     }
   }

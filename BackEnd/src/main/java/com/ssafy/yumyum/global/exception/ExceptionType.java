@@ -51,6 +51,9 @@ public enum ExceptionType {
     // meal
     FOOD_NUTRITION_NOT_FOUND(NOT_FOUND, "M001", "존재하지 않는 음식 정보입니다."),
     MEAL_LOG_NOT_FOUND(NOT_FOUND, "M002", "존재하지 않는 식단 기록입니다."),
+    RECIPE_RECOMMENDATION_INVENTORY_EMPTY(BAD_REQUEST, "M003", "추천에 사용할 냉장고 재료가 없습니다."),
+    RECIPE_RECOMMENDATION_API_KEY_NOT_CONFIGURED(INTERNAL_SERVER_ERROR, "M004", "레시피 추천 API 키가 설정되지 않았습니다."),
+    RECIPE_RECOMMENDATION_FAILED(BAD_GATEWAY, "M005", "레시피 추천 생성에 실패했습니다."),
 
     // file
     EMPTY_IMAGE_FILE(BAD_REQUEST, "F001", "분석할 이미지 파일을 선택해 주세요."),

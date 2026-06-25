@@ -84,6 +84,13 @@ public class MealLogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseUtil.createSuccessResponse(response));
     }
 
+    @PostMapping("/recommendations/generate")
+    public ResponseEntity<ResponseBody<LatestRecipeRecommendationsResponse>> generateRecommendations(
+            @AuthenticationPrincipal CustomUserDetails user) {
+        LatestRecipeRecommendationsResponse response = mealLogService.generateRecommendations(user.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseUtil.createSuccessResponse(response));
+    }
+
     @GetMapping("/recommendations/latest")
     public ResponseBody<LatestRecipeRecommendationsResponse> findLatestRecommendations(
             @AuthenticationPrincipal CustomUserDetails user) {

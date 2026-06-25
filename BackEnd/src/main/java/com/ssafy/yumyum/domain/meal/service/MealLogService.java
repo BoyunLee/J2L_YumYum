@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,10 @@ import com.ssafy.yumyum.domain.meal.entity.MealDailySummary;
 import com.ssafy.yumyum.domain.meal.entity.MealLog;
 import com.ssafy.yumyum.domain.meal.entity.MealLogItem;
 import com.ssafy.yumyum.domain.meal.entity.MealType;
+import com.ssafy.yumyum.domain.meal.service.recommendation.RecipeRecommendationProvider;
+import com.ssafy.yumyum.domain.admin.service.ApiUsageService;
+import com.ssafy.yumyum.domain.refrigerator.dao.RefrigeratorItemDao;
+import com.ssafy.yumyum.domain.refrigerator.entity.RefrigeratorItem;
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
 
@@ -44,6 +49,9 @@ public class MealLogService {
 
     private final MealLogDao mealLogDao;
     private final ObjectMapper objectMapper;
+    private final RefrigeratorItemDao refrigeratorItemDao;
+    private final RecipeRecommendationProvider recipeRecommendationProvider;
+    private final ApiUsageService apiUsageService;
 
     @Transactional(readOnly = true)
     public List<FoodSearchResponse> searchFoods(String query, int limit) {
@@ -136,13 +144,46 @@ public class MealLogService {
             item.setName(recipe.name().trim());
             item.setQuantity(BigDecimal.valueOf(recipe.servings()));
             item.setUnit("인분");
-            item.setUnit("인분");
             item.setRecipePayload(toJson(recipe));
             mealLogDao.insertRecommendationItem(item);
             itemIds.add(item.getId());
         }
 
         return new RecipeRecommendationSaveResponse(mealLog.getId(), List.copyOf(itemIds));
+    }
+
+    public LatestRecipeRecommendationsResponse generateRecommendations(Long userId) {
+        long startedAt = System.nanoTime();
+        boolean success = false;
+        String errorCode = null;
+        try {
+            List<RefrigeratorItem> inventory = refrigeratorItemDao.findAllByUserId(userId);
+            if (inventory.isEmpty()) {
+                throw new BusinessException(ExceptionType.RECIPE_RECOMMENDATION_INVENTORY_EMPTY);
+            }
+
+            List<RecipeRecommendationItemRequest> recipes = recipeRecommendationProvider.recommend(inventory);
+            if (recipes.isEmpty()) {
+                throw new BusinessException(ExceptionType.RECIPE_RECOMMENDATION_FAILED);
+            }
+
+            saveRecommendations(userId, new RecipeRecommendationSaveRequest(recipes));
+            success = true;
+            return findLatestRecommendations(userId);
+        } catch (BusinessException exception) {
+            errorCode = exception.getExceptionType().getCode();
+            throw exception;
+        } catch (RuntimeException exception) {
+            errorCode = "REQUEST_FAILED";
+            throw new BusinessException(ExceptionType.RECIPE_RECOMMENDATION_FAILED);
+        } finally {
+            recordRecipeRecommendationUsage(
+                    userId,
+                    success,
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt),
+                    errorCode
+            );
+        }
     }
 
     @Transactional(readOnly = true)
@@ -256,6 +297,20 @@ public class MealLogService {
             return objectMapper.readValue(recipePayload, RecipeRecommendationItemRequest.class);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("저장된 레시피 추천 데이터를 읽지 못했습니다.", exception);
+        }
+    }
+
+    private void recordRecipeRecommendationUsage(Long userId, boolean success, long durationMs, String errorCode) {
+        try {
+            apiUsageService.record(
+                    userId,
+                    ApiUsageService.RECIPE_RECOMMENDATION,
+                    success,
+                    durationMs,
+                    errorCode
+            );
+        } catch (RuntimeException exception) {
+            // 통계 기록 실패가 사용자 레시피 요청 결과를 덮어쓰지 않도록 합니다.
         }
     }
 }

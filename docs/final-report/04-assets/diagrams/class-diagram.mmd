@@ -1,0 +1,159 @@
+classDiagram
+direction LR
+
+  class User {
+    +Long id
+    +String email
+    +String nickname
+    +OAuth2Provider provider
+    +String providerUserId
+    +UserRole role
+    +Gender gender
+    +BigDecimal heightCm
+    +BigDecimal weightKg
+    +ActivityLevel activityLevel
+  }
+
+  class RefrigeratorItem {
+    +Long id
+    +Long refrigeratorId
+    +String name
+    +FoodCategory category
+    +BigDecimal quantity
+    +String unit
+    +LocalDate expirationDate
+    +StorageLocation storageLocation
+    +String memo
+  }
+
+  class MealLog {
+    +Long id
+    +Long userId
+    +MealType mealType
+    +LocalDateTime eatenAt
+    +String memo
+    +List items
+  }
+
+  class MealLogItem {
+    +Long id
+    +Long mealLogId
+    +String foodCode
+    +String name
+    +BigDecimal quantity
+    +String unit
+    +String recipePayload
+    +BigDecimal energyKcal
+  }
+
+  class Notification {
+    +Long id
+    +String notificationType
+    +String expirationStatus
+    +String title
+    +String content
+    +boolean read
+  }
+
+  class MealLogController
+  class MealLogService {
+    +createConsumedMealLog(userId, request)
+    +findConsumedSummary(userId, date)
+    +generateRecommendations(userId)
+  }
+  class MealLogDao
+
+  class RefrigeratorItemController
+  class RefrigeratorItemService {
+    +createManuals(userId, requests)
+    +findAll(userId)
+    +update(userId, itemId, request)
+    +delete(userId, itemId)
+  }
+  class RefrigeratorItemDao
+
+  class InventoryImageAnalysisService {
+    +analyze(type, image)
+  }
+  class InventoryImageAnalysisProvider {
+    <<interface>>
+    +analyze(type, bytes, contentType, filename)
+  }
+
+  class RecipeRecommendationProvider {
+    <<interface>>
+    +recommend(inventory)
+  }
+  class ConfigurableRecipeRecommendationProvider {
+    +recommend(inventory)
+  }
+  class MockRecipeRecommendationProvider {
+    +recommend(inventory)
+  }
+  class GmsRecipeRecommendationProvider {
+    +recommend(inventory)
+  }
+  class IntegrationModeProperties {
+    +String mode
+    +isMock()
+    +isLive()
+    +isFallback()
+  }
+
+  class NotificationController
+  class NotificationService
+  class NotificationDao
+  class ExpirationNotificationScheduler
+
+  class AdminController
+  class ApiUsageController
+  class AdminService
+  class ApiUsageService {
+    +record(userId, apiType, success, durationMs, errorCode)
+    +getHourlyUsage(hours)
+  }
+  class AdminDao
+  class ApiUsageLog {
+    +Long id
+    +Long userId
+    +String apiType
+    +boolean success
+    +Long durationMs
+    +String errorCode
+  }
+
+  User "1" --> "*" RefrigeratorItem : owns via refrigerator
+  User "1" --> "*" MealLog : writes
+  MealLog "1" *-- "*" MealLogItem : contains
+  User "1" --> "*" Notification : receives
+
+  RefrigeratorItemController --> RefrigeratorItemService
+  RefrigeratorItemController --> InventoryImageAnalysisService
+  RefrigeratorItemController --> ApiUsageService : OCR/BARCODE usage
+  RefrigeratorItemService --> RefrigeratorItemDao
+  RefrigeratorItemDao ..> RefrigeratorItem
+  InventoryImageAnalysisService --> InventoryImageAnalysisProvider
+
+  MealLogController --> MealLogService
+  MealLogService --> MealLogDao
+  MealLogService --> RefrigeratorItemDao : recommendation inventory
+  MealLogService --> RecipeRecommendationProvider
+  MealLogService --> ApiUsageService : recommendation usage
+  MealLogDao ..> MealLog
+  MealLogDao ..> MealLogItem
+
+  RecipeRecommendationProvider <|.. ConfigurableRecipeRecommendationProvider
+  ConfigurableRecipeRecommendationProvider --> IntegrationModeProperties
+  ConfigurableRecipeRecommendationProvider --> MockRecipeRecommendationProvider : mock/fallback delegate
+  ConfigurableRecipeRecommendationProvider --> GmsRecipeRecommendationProvider : live delegate
+
+  NotificationController --> NotificationService
+  ExpirationNotificationScheduler --> NotificationService
+  NotificationService --> NotificationDao
+  NotificationDao ..> Notification
+
+  AdminController --> AdminService
+  ApiUsageController --> ApiUsageService
+  AdminService --> AdminDao
+  ApiUsageService --> AdminDao
+  AdminDao ..> ApiUsageLog

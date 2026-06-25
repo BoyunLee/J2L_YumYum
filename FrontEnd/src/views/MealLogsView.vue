@@ -260,62 +260,8 @@
             </article>
           </div>
         </section>
-
-        <section v-if="false" class="panel padded meal-tip-panel">
-          <h2>기록 팁</h2>
-          <p>음식 1개는 DB에 저장된 기본 제공량 1회 기준입니다. 배수를 2로 넣으면 영양값도 2배로 반영돼요.</p>
-        </section>
       </aside>
     </div>
-
-    <section v-if="false" class="panel">
-      <div class="panel-head">
-        <div>
-          <h2>{{ selectedDateLabel }} 기록</h2>
-          <p>저장된 식단을 다시 확인하거나 바로 삭제할 수 있어요.</p>
-        </div>
-      </div>
-
-      <div v-if="isLoadingMealLogs" class="recommendation-loading" role="status">
-        <span class="callback-spinner" aria-hidden="true"></span>
-        <p>식단 기록을 불러오는 중이에요.</p>
-      </div>
-
-      <div v-else class="list-stack meal-log-list">
-        <article v-for="log in mealLogs" :key="log.id" class="meal-log-card">
-          <div class="meal-log-top">
-            <div class="meal-log-headline">
-              <span class="badge" :class="mealTypeBadgeClass(log.mealType)">{{ mealTypeLabel(log.mealType) }}</span>
-              <strong>{{ formatNumber(log.totalCalories) }} kcal</strong>
-            </div>
-            <button class="ghost-btn compact" type="button" @click="removeMealLog(log.id)">삭제</button>
-          </div>
-
-          <p v-if="log.memo" class="meal-log-memo">{{ log.memo }}</p>
-
-          <div class="meal-log-macros">
-            <span>탄수 {{ formatNumber(log.totalCarbohydrate) }}g</span>
-            <span>단백질 {{ formatNumber(log.totalProtein) }}g</span>
-            <span>지방 {{ formatNumber(log.totalFat) }}g</span>
-          </div>
-
-          <div class="meal-log-items">
-            <div v-for="item in log.items" :key="item.id" class="meal-log-item-row">
-              <span>
-                <strong>{{ item.name }}</strong>
-                <small>{{ item.baseAmount ?? '1회 제공량' }} x {{ formatNumber(item.quantity) }}</small>
-              </span>
-              <span class="right-text">
-                <small>{{ formatNumber(item.calories) }} kcal</small>
-                <small>탄 {{ formatNumber(item.carbohydrate) }} / 단 {{ formatNumber(item.protein) }} / 지 {{ formatNumber(item.fat) }}</small>
-              </span>
-            </div>
-          </div>
-        </article>
-
-        <p v-if="mealLogs.length === 0" class="empty-text">이 날짜에는 아직 저장된 식단이 없어요.</p>
-      </div>
-    </section>
   </section>
 </template>
 
