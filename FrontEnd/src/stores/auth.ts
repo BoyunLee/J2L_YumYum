@@ -21,6 +21,12 @@ export interface UserProfile extends OnboardingForm {
   profileImageUrl: string | null
 }
 
+interface TokenRefreshPayload {
+  accessToken: string
+  refreshToken: string
+  role: string
+}
+
 const ACCESS_TOKEN_KEY = 'yumyum_access_token'
 const REFRESH_TOKEN_KEY = 'yumyum_refresh_token'
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
@@ -49,9 +55,17 @@ export const useAuthStore = defineStore('auth', () => {
   const notice = ref<string | null>(null)
   const profile = ref<UserProfile | null>(null)
   const isNewUser = ref(false)
+  let refreshRequest: Promise<string | null> | null = null
 
   const isAuthenticated = computed(() => Boolean(accessToken.value))
   const requiresOnboarding = computed(() => getRole(accessToken.value) === 'GUEST')
+
+  function storeTokens(nextAccessToken: string, nextRefreshToken: string) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, nextAccessToken)
+    localStorage.setItem(REFRESH_TOKEN_KEY, nextRefreshToken)
+    accessToken.value = nextAccessToken
+    refreshToken.value = nextRefreshToken
+  }
 
   function login(provider: OAuthProvider) {
     error.value = null
@@ -84,10 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
-    localStorage.setItem(ACCESS_TOKEN_KEY, nextAccessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, nextRefreshToken)
-    accessToken.value = nextAccessToken
-    refreshToken.value = nextRefreshToken
+    storeTokens(nextAccessToken, nextRefreshToken)
     isNewUser.value = params.get('is_new_user') === 'true'
     error.value = null
     return true
@@ -108,10 +119,66 @@ export const useAuthStore = defineStore('auth', () => {
     notice.value = '로그인이 만료되었습니다. 다시 로그인해 주세요.'
   }
 
-  async function fetchProfile() {
-    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-      headers: { Authorization: `Bearer ${accessToken.value}` },
+  async function refreshAccessToken() {
+    if (!refreshToken.value) {
+      expireSession()
+      return null
+    }
+
+    if (!refreshRequest) {
+      refreshRequest = (async () => {
+        const response = await fetch(`${API_BASE_URL}/api/users/token/refresh`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: refreshToken.value }),
+        })
+        const body = await response.json().catch(() => null)
+        if (!response.ok || !body?.data) {
+          expireSession()
+          throw new Error(body?.message ?? body?.msg ?? '로그인이 만료되었습니다. 다시 로그인해 주세요.')
+        }
+
+        const tokens = body.data as TokenRefreshPayload
+        storeTokens(tokens.accessToken, tokens.refreshToken)
+        return tokens.accessToken
+      })().finally(() => {
+        refreshRequest = null
+      })
+    }
+
+    return refreshRequest
+  }
+
+  async function authorizedFetch(input: string, init: RequestInit = {}) {
+    const headers = new Headers(init.headers)
+    if (accessToken.value) {
+      headers.set('Authorization', `Bearer ${accessToken.value}`)
+    }
+
+    let response = await fetch(input, {
+      ...init,
+      headers,
     })
+
+    if (response.status !== 401) {
+      return response
+    }
+
+    const nextAccessToken = await refreshAccessToken()
+    if (!nextAccessToken) {
+      return response
+    }
+
+    const retryHeaders = new Headers(init.headers)
+    retryHeaders.set('Authorization', `Bearer ${nextAccessToken}`)
+    return fetch(input, {
+      ...init,
+      headers: retryHeaders,
+    })
+  }
+
+  async function fetchProfile() {
+    const response = await authorizedFetch(`${API_BASE_URL}/api/users/me`)
     const body = await response.json().catch(() => null)
     if (response.status === 401) {
       expireSession()
@@ -123,9 +190,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateProfile(form: OnboardingForm) {
-    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+    const response = await authorizedFetch(`${API_BASE_URL}/api/users/me`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken.value}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
     const body = await response.json().catch(() => null)
@@ -133,7 +200,7 @@ export const useAuthStore = defineStore('auth', () => {
       expireSession()
       throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
     }
-    if (!response.ok || !body?.data) throw new Error(body?.message ?? body?.msg ?? '내 정보를 저장하지 못했습니다.')
+    if (!response.ok || !body?.data) throw new Error(body?.message ?? body?.msg ?? '내 정보를 수정하지 못했습니다.')
     profile.value = body.data
     return body.data as UserProfile
   }
@@ -148,12 +215,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function completeOnboarding(form: OnboardingForm) {
     error.value = null
-    const response = await fetch(`${API_BASE_URL}/api/users/me/onboarding`, {
+    const response = await authorizedFetch(`${API_BASE_URL}/api/users/me/onboarding`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken.value}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
     const body = await response.json().catch(() => null)
@@ -165,10 +229,7 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error(body?.msg ?? '추가 정보를 저장하지 못했습니다.')
     }
 
-    localStorage.setItem(ACCESS_TOKEN_KEY, body.data.accessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, body.data.refreshToken)
-    accessToken.value = body.data.accessToken
-    refreshToken.value = body.data.refreshToken
+    storeTokens(body.data.accessToken, body.data.refreshToken)
     isNewUser.value = false
   }
 
@@ -180,10 +241,12 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     requiresOnboarding,
     isNewUser,
+    authorizedFetch,
     login,
     completeOAuthLogin,
     completeOnboarding,
     fetchProfile,
+    refreshAccessToken,
     updateProfile,
     unlink,
     logout,

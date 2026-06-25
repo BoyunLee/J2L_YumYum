@@ -1,0 +1,40 @@
+flowchart LR
+  user["사용자 브라우저"] --> fe["Vue 3 / Vite / Pinia"]
+  admin["관리자 브라우저"] --> fe
+  fe --> be["Spring Boot API"]
+  be --> mysql["MySQL"]
+  be --> ocr["FastAPI Pororo OCR"]
+  be --> oauth["OAuth Providers\nGoogle / Naver / Kakao"]
+  be --> gms["GMS / GPT API"]
+  be --> food["식품안전나라 API"]
+
+  subgraph docker["Docker Compose"]
+    fe
+    be
+    mysql
+    ocr
+  end
+
+  subgraph backend["BackEnd Core"]
+    auth["OAuth/JWT 인증"]
+    inventory["냉장고 API"]
+    meal["식단 기록 API"]
+    recommendation["레시피 추천 Provider"]
+    notification["알림/배치"]
+    adminApi["관리자 API"]
+  end
+
+  be --> auth
+  be --> inventory
+  be --> meal
+  be --> recommendation
+  be --> notification
+  be --> adminApi
+
+  recommendation -. "INTEGRATION_MODE=mock" .-> mock["Mock Providers"]
+  recommendation -. "INTEGRATION_MODE=fallback" .-> mock
+  inventory --> food
+  inventory --> ocr
+  recommendation --> gms
+  notification --> mysql
+  adminApi --> mysql

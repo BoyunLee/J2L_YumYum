@@ -197,9 +197,13 @@ import {
   type InventoryImageAnalysis,
   type InventoryImageAnalysisItem,
 } from '../stores/fridge'
+import { maybeOptimizeImageForOcr } from '../utils/ocrImage'
 import { iconPath } from '../utils/uiHelpers'
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_CAMERA_CAPTURE_WIDTH = 1600
+const MAX_CAMERA_CAPTURE_HEIGHT = 1600
+const CAMERA_CAPTURE_QUALITY = 0.82
 const locationLabels: Record<string, string> = {
   REFRIGERATOR: locations[0] ?? '냉장',
   FREEZER: locations[1] ?? '냉동',
@@ -284,17 +288,23 @@ function resetForms() {
   addForms.value = [createFormEntry()]
 }
 
-function quantityText(form: InventoryForm) {
-  return String(form.quantity ?? '').trim()
+function toTrimmedFormValue(value: string | number | null | undefined) {
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value).trim()
+  return ''
 }
 
 function hasFormContent(form: InventoryForm) {
-  return Boolean(form.name.trim() || quantityText(form) || form.expiryDate.trim() || form.memo.trim())
+  return Boolean(
+    form.name.trim()
+    || toTrimmedFormValue(form.quantity)
+    || form.expiryDate.trim()
+    || form.memo.trim(),
+  )
 }
 
 function isCompleteForm(form: InventoryForm) {
-  const quantity = quantityText(form)
-
+  const quantity = toTrimmedFormValue(form.quantity)
   return Boolean(
     form.name.trim()
     && quantity
@@ -347,6 +357,10 @@ function setSelectedImage(file: File) {
     return
   }
   stopWebCamera()
+  applySelectedImageFile(file)
+}
+
+function applySelectedImageFile(file: File) {
   clearPreviewUrl()
   selectedImage.value = file
   imagePreviewUrl.value = URL.createObjectURL(file)
@@ -375,7 +389,11 @@ async function startWebCamera() {
   try {
     cameraStream.value = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: 'environment' } },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: MAX_CAMERA_CAPTURE_WIDTH },
+        height: { ideal: MAX_CAMERA_CAPTURE_HEIGHT },
+      },
     })
     isCameraOpen.value = true
     await nextTick()
@@ -403,10 +421,18 @@ async function captureWebCamera() {
     return
   }
   const canvas = document.createElement('canvas')
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  canvas.getContext('2d')?.drawImage(video, 0, 0)
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  const captureSize = fitWithin(
+    video.videoWidth,
+    video.videoHeight,
+    MAX_CAMERA_CAPTURE_WIDTH,
+    MAX_CAMERA_CAPTURE_HEIGHT,
+  )
+  canvas.width = captureSize.width
+  canvas.height = captureSize.height
+  canvas.getContext('2d')?.drawImage(video, 0, 0, captureSize.width, captureSize.height)
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', CAMERA_CAPTURE_QUALITY)
+  })
   if (!blob) {
     analysisError.value = '촬영한 사진을 처리하지 못했습니다.'
     return
@@ -501,7 +527,17 @@ async function analyzeSelectedImage() {
   analysisMessage.value = ''
   analysisError.value = ''
   try {
-    const result = await store.analyzeInventoryImage(analysisType.value, selectedImage.value)
+    let imageForAnalysis = selectedImage.value
+    if (analysisType.value === 'OCR') {
+      analysisMessage.value = 'OCR 속도를 위해 이미지를 최적화하고 있습니다...'
+      imageForAnalysis = await maybeOptimizeImageForOcr(selectedImage.value)
+      if (imageForAnalysis !== selectedImage.value) {
+        applySelectedImageFile(imageForAnalysis)
+      }
+      analysisMessage.value = '이미지를 분석하고 있습니다...'
+    }
+
+    const result = await store.analyzeInventoryImage(analysisType.value, imageForAnalysis)
     const summary = applyAnalysisResults(result)
     analysisMessage.value = summary.appliedFields > 0
       ? summary.addedForms > 0
@@ -512,6 +548,18 @@ async function analyzeSelectedImage() {
     analysisError.value = error instanceof Error ? error.message : '이미지를 분석하지 못했습니다.'
   } finally {
     isAnalyzing.value = false
+  }
+}
+
+function fitWithin(width: number, height: number, maxWidth: number, maxHeight: number) {
+  if (width <= maxWidth && height <= maxHeight) {
+    return { width, height }
+  }
+
+  const scale = Math.min(maxWidth / width, maxHeight / height)
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
   }
 }
 

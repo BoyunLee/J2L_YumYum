@@ -14,6 +14,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./BackEnd/src/main/resources/sql/yumyum.sql:/docker-entrypoint-initdb.d/01-yumyum.sql:ro
+      - ./BackEnd/src/main/resources/sql/SSAFY_COACH_Dump.sql:/docker-entrypoint-initdb.d/02-food-nutrition-data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent || exit 1"]
       interval: 10s
@@ -47,36 +48,44 @@ services:
       dockerfile: Dockerfile
     container_name: yumyum-backend
     restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-yumyum}
+      MYSQL_USER: ${MYSQL_USER:-ssafy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ssafy}
+      COMPANY_ORIGIN_URL: ${COMPANY_ORIGIN_URL:-http://localhost:5173}
+      COMPANY_TEMP_URL: ${COMPANY_TEMP_URL:-http://localhost}
+      COMPANY_TEMP_URL_PORT: ${COMPANY_TEMP_URL_PORT:-http://localhost:8080}
+      INTEGRATION_MODE: ${INTEGRATION_MODE:-mock}
+      JWT_ISSUER: ${JWT_ISSUER:-J2L_yumyum}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-local-demo-secret-change-me-32-bytes-minimum}
+      JWT_ACCESS_EXPIRED_AT: ${JWT_ACCESS_EXPIRED_AT:-3600000}
+      JWT_REFRESH_EXPIRED_AT: ${JWT_REFRESH_EXPIRED_AT:-604800000}
+      ADMIN_BOOTSTRAP_ENABLED: ${ADMIN_BOOTSTRAP_ENABLED:-false}
+      ADMIN_BOOTSTRAP_LOGIN_ID: ${ADMIN_BOOTSTRAP_LOGIN_ID:-}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+      ADMIN_BOOTSTRAP_ROLE: ${ADMIN_BOOTSTRAP_ROLE:-SUPER_ADMIN}
+      GMS_API_URL: ${GMS_API_URL:-https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions}
+      GMS_API_MODEL: ${GMS_API_MODEL:-gpt-5-nano}
+      GMS_API_KEY: ${GMS_API_KEY:-}
+      GMS_KEY: ${GMS_KEY:-}
+      PORORO_OCR_URL: ${PORORO_OCR_URL:-http://pororo-ocr:8000/ocr}
+      PORORO_OCR_LANG: ${PORORO_OCR_LANG:-ko}
+      FOOD_SAFETY_API_BASE_URL: ${FOOD_SAFETY_API_BASE_URL:-http://openapi.foodsafetykorea.go.kr/api}
+      FOOD_SAFETY_API_KEY: ${FOOD_SAFETY_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
     depends_on:
       mysql:
         condition: service_healthy
       pororo-ocr:
         condition: service_healthy
-    environment:
-      TZ: ${TZ:-Asia/Seoul}
-      SERVER_PORT: 8080
-      COMPANY_ORIGIN_URL: ${COMPANY_ORIGIN_URL:-http://localhost:5173}
-      COMPANY_TEMP_URL: ${COMPANY_TEMP_URL:-http://localhost}
-      SPRING_DATASOURCE_HIKARI_JDBC_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-yumyum}?serverTimezone=Asia/Seoul&useUnicode=yes&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
-      SPRING_DATASOURCE_HIKARI_USERNAME: ${MYSQL_USER:-ssafy}
-      SPRING_DATASOURCE_HIKARI_PASSWORD: ${MYSQL_PASSWORD:-ssafy}
-      GMS_API_URL: ${GMS_API_URL:-https://gms.ssafy.io/gmsapi/api.openai.com/v1/chat/completions}
-      GMS_API_MODEL: ${GMS_API_MODEL:-gpt-5-nano}
-      GMS_API_KEY: ${GMS_API_KEY:-S15P02AK07-d62d0cdb-492a-4b91-9b4d-6cefae383c4d}
-      PORORO_OCR_URL: ${PORORO_OCR_URL:-http://pororo-ocr:8000/ocr}
-      PORORO_OCR_LANG: ${PORORO_OCR_LANG:-ko}
-      FOOD_SAFETY_API_BASE_URL: ${FOOD_SAFETY_API_BASE_URL:-http://openapi.foodsafetykorea.go.kr/api}
-      FOOD_SAFETY_API_KEY: ${FOOD_SAFETY_API_KEY:-4dd9e608f9e54b85bdbf}
-      JWT_ISSUER: ${JWT_ISSUER:-J2L_yumyum}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-q4jctnverwi-yung24fuwn47bcwt-34vernbwvpqnvti2pqcMWPXCVNWVUVQRNIEsfhdTUOMAEOIJVNSOI}
-      JWT_ACCESS_EXPIRED_AT: ${JWT_ACCESS_EXPIRED_AT:-3600000}
-      JWT_REFRESH_EXPIRED_AT: ${JWT_REFRESH_EXPIRED_AT:-604800000}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-333371555299-ur7kg6jt9nchj3m7ovvhbvhhc46jtufo.apps.googleusercontent.com}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-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}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-YLMtYWLPpQuL5zum_vPM}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-KYIPfPsLUh}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-985396ad2d5eda62c6a4d8a8fbd402ef}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-4nXBBnfFCGpb6bAkyqciVZw8W9JtHrSI}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
 
@@ -86,14 +95,10 @@ services:
       dockerfile: Dockerfile
     container_name: yumyum-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
     depends_on:
       - backend
-    environment:
-      TZ: ${TZ:-Asia/Seoul}
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
-      VITE_GMS_API_URL: ${VITE_GMS_API_URL:-/gms-api/v1/chat/completions}
-      VITE_GMS_MODEL: ${VITE_GMS_MODEL:-gpt-5-nano}
-      GMS_KEY: ${GMS_KEY:-S15P02AK07-d62d0cdb-492a-4b91-9b4d-6cefae383c4d}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
 

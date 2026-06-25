@@ -1,6 +1,141 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ssafy.yumyum.domain.meal.dao.MealLogDao">
+    <select id="searchFoods" resultType="com.ssafy.yumyum.domain.meal.entity.FoodNutrition">
+        SELECT food_code AS code,
+               food_name AS name,
+               category,
+               weight,
+               energy_kcal AS energyKcal,
+               protein_g AS proteinG,
+               fat_g AS fatG,
+               carbohydrate_g AS carbohydrateG
+        FROM food_nutrition
+        <if test="query != null and query != ''">
+            WHERE food_name LIKE CONCAT('%', #{query}, '%')
+        </if>
+        <choose>
+            <when test="query != null and query != ''">
+                ORDER BY CASE
+                             WHEN food_name LIKE CONCAT(#{query}, '%') THEN 0
+                             ELSE 1
+                         END,
+                         CHAR_LENGTH(food_name),
+                         food_name
+            </when>
+            <otherwise>
+                ORDER BY CHAR_LENGTH(food_name), food_name
+            </otherwise>
+        </choose>
+        LIMIT #{limit}
+    </select>
+
+    <select id="findFoodByCode" resultType="com.ssafy.yumyum.domain.meal.entity.FoodNutrition">
+        SELECT food_code AS code,
+               food_name AS name,
+               category,
+               weight,
+               energy_kcal AS energyKcal,
+               protein_g AS proteinG,
+               fat_g AS fatG,
+               carbohydrate_g AS carbohydrateG
+        FROM food_nutrition
+        WHERE food_code = #{foodCode}
+    </select>
+
+    <insert id="insertConsumedLog" useGeneratedKeys="true" keyProperty="id" keyColumn="meal_log_id">
+        INSERT INTO meal_logs (user_id, log_type, meal_type, eaten_at, memo)
+        VALUES (#{userId}, 'CONSUMED', #{mealType}, #{eatenAt}, #{memo})
+    </insert>
+
+    <insert id="insertConsumedItem" useGeneratedKeys="true" keyProperty="id" keyColumn="meal_log_item_id">
+        INSERT INTO meal_log_items (
+            meal_log_id, item_type, food_code, item_name, quantity, quantity_unit, recipe_payload
+        ) VALUES (
+            #{mealLogId}, 'CONSUMED', #{foodCode}, #{name}, #{quantity}, #{unit}, NULL
+        )
+    </insert>
+
+    <select id="findConsumedLogs" resultType="com.ssafy.yumyum.domain.meal.entity.MealLog">
+        SELECT meal_log_id AS id,
+               user_id AS userId,
+               meal_type AS mealType,
+               eaten_at AS eatenAt,
+               memo,
+               created_at AS createdAt
+        FROM meal_logs
+        WHERE user_id = #{userId}
+          AND log_type = 'CONSUMED'
+        <if test="date != null">
+            AND DATE(eaten_at) = #{date}
+        </if>
+        ORDER BY eaten_at DESC, meal_log_id DESC
+    </select>
+
+    <select id="findConsumedLogByIdAndUserId" resultType="com.ssafy.yumyum.domain.meal.entity.MealLog">
+        SELECT meal_log_id AS id,
+               user_id AS userId,
+               meal_type AS mealType,
+               eaten_at AS eatenAt,
+               memo,
+               created_at AS createdAt
+        FROM meal_logs
+        WHERE meal_log_id = #{mealLogId}
+          AND user_id = #{userId}
+          AND log_type = 'CONSUMED'
+    </select>
+
+    <select id="findConsumedItemsByMealLogId" resultType="com.ssafy.yumyum.domain.meal.entity.MealLogItem">
+        SELECT i.meal_log_item_id AS id,
+               i.meal_log_id AS mealLogId,
+               i.food_code AS foodCode,
+               i.item_name AS name,
+               i.quantity,
+               i.quantity_unit AS unit,
+               f.energy_kcal AS energyKcal,
+               f.protein_g AS proteinG,
+               f.carbohydrate_g AS carbohydrateG,
+               f.fat_g AS fatG
+        FROM meal_log_items i
+        LEFT JOIN food_nutrition f ON f.food_code = i.food_code
+        WHERE i.meal_log_id = #{mealLogId}
+          AND i.item_type = 'CONSUMED'
+        ORDER BY i.meal_log_item_id
+    </select>
+
+    <select id="findConsumedSummaryByDate" resultType="com.ssafy.yumyum.domain.meal.entity.MealDailySummary">
+        SELECT COUNT(DISTINCT l.meal_log_id) AS mealCount,
+               COUNT(i.meal_log_item_id) AS itemCount,
+               COALESCE(SUM(COALESCE(f.energy_kcal, 0) * i.quantity), 0) AS totalCalories,
+               COALESCE(SUM(COALESCE(f.protein_g, 0) * i.quantity), 0) AS totalProtein,
+               COALESCE(SUM(COALESCE(f.carbohydrate_g, 0) * i.quantity), 0) AS totalCarbohydrate,
+               COALESCE(SUM(COALESCE(f.fat_g, 0) * i.quantity), 0) AS totalFat
+        FROM meal_logs l
+        LEFT JOIN meal_log_items i
+            ON i.meal_log_id = l.meal_log_id
+           AND i.item_type = 'CONSUMED'
+        LEFT JOIN food_nutrition f
+            ON f.food_code = i.food_code
+        WHERE l.user_id = #{userId}
+          AND l.log_type = 'CONSUMED'
+          AND DATE(l.eaten_at) = #{date}
+    </select>
+
+    <delete id="deleteConsumedItemsByMealLogIdAndUserId">
+        DELETE i
+        FROM meal_log_items i
+        JOIN meal_logs l ON l.meal_log_id = i.meal_log_id
+        WHERE i.meal_log_id = #{mealLogId}
+          AND l.user_id = #{userId}
+          AND l.log_type = 'CONSUMED'
+    </delete>
+
+    <delete id="deleteConsumedLogByIdAndUserId">
+        DELETE FROM meal_logs
+        WHERE meal_log_id = #{mealLogId}
+          AND user_id = #{userId}
+          AND log_type = 'CONSUMED'
+    </delete>
     <insert id="insertRecommendationLog" useGeneratedKeys="true" keyProperty="id" keyColumn="meal_log_id">
         INSERT INTO meal_logs (user_id, log_type, meal_type, eaten_at, memo)
         VALUES (#{userId}, 'RECOMMENDATION', NULL, NULL, 'AI 레시피 추천')

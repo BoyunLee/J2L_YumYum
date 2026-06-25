@@ -12,6 +12,8 @@ import com.ssafy.yumyum.domain.user.dto.UserOnboardingRequest;
 import com.ssafy.yumyum.domain.user.dto.UserOnboardingResponse;
 import com.ssafy.yumyum.domain.user.dto.UserProfileResponse;
 import com.ssafy.yumyum.domain.user.dto.UserProfileUpdateRequest;
+import com.ssafy.yumyum.domain.user.dto.TokenRefreshRequest;
+import com.ssafy.yumyum.domain.user.dto.TokenRefreshResponse;
 import com.ssafy.yumyum.domain.user.service.UserService;
 import com.ssafy.yumyum.global.response.ResponseBody;
 import com.ssafy.yumyum.global.response.ResponseUtil;
@@ -45,6 +47,14 @@ public class UserController {
             @Valid @RequestBody UserOnboardingRequest request) {
         return ResponseEntity.ok(ResponseUtil.createSuccessResponse(
                 userService.completeOnboarding(user.getId(), request)
+        ));
+    }
+
+    @PatchMapping("/token/refresh")
+    public ResponseEntity<ResponseBody<TokenRefreshResponse>> refreshAccessToken(
+            @Valid @RequestBody TokenRefreshRequest request) {
+        return ResponseEntity.ok(ResponseUtil.createSuccessResponse(
+                userService.refreshAccessToken(request.refreshToken())
         ));
     }
 }

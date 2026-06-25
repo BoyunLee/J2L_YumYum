@@ -34,6 +34,15 @@
           <span>{{ item.label }}</span>
           <b v-if="item.view === 'notifications' && unreadCount">{{ unreadCount }}</b>
         </button>
+        <button
+          type="button"
+          class="nav-item"
+          :class="{ active: currentView === 'meals' }"
+          @click="store.go('meals')"
+        >
+          <svg viewBox="0 0 24 24"><path :d="iconPath('calendar')" /></svg>
+          <span>식단 기록</span>
+        </button>
       </nav>
     </div>
   </header>

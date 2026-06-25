@@ -27,7 +27,6 @@
       <aside class="panel padded">
         <h2>조리 팁</h2>
         <p v-for="tip in selectedRecipe.tips" :key="tip" class="tip-text">{{ tip }}</p>
-        <button class="primary-btn full-width" type="button">조리 시작하기</button>
       </aside>
     </div>
   </section>

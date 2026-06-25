@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useAuthStore, type ActivityLevel, type Gender, type UserProfile } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -9,6 +9,7 @@ const message = ref('')
 const error = ref('')
 const showWithdrawal = ref(false)
 const withdrawalText = ref('')
+const isWithdrawalConfirmed = computed(() => withdrawalText.value.trim() === '탈퇴합니다')
 const form = reactive({ nickname: '', email: '', gender: 'OTHER' as Gender, birthDate: '', heightCm: 170, weightKg: 65, activityLevel: 'MEDIUM' as ActivityLevel })
 
 function fillForm(profile: UserProfile) {
@@ -28,8 +29,12 @@ async function save() {
   finally { saving.value = false }
 }
 
+function syncWithdrawalText(event: Event) {
+  withdrawalText.value = (event.target as HTMLInputElement).value
+}
+
 function withdraw() {
-  if (auth.profile && withdrawalText.value === '탈퇴합니다') auth.unlink(auth.profile.provider)
+  if (auth.profile && isWithdrawalConfirmed.value) auth.unlink(auth.profile.provider)
 }
 </script>
 
@@ -60,10 +65,10 @@ function withdraw() {
         <p>냉장고 데이터가 더 이상 표시되지 않으며, 연결된 소셜 계정의 앱 연결도 해제됩니다.</p>
         <button v-if="!showWithdrawal" class="danger-btn" type="button" @click="showWithdrawal = true">회원 탈퇴</button>
         <div v-else class="withdrawal-confirm">
-          <label class="form-field">확인을 위해 <strong>탈퇴합니다</strong>를 입력해 주세요.<input v-model="withdrawalText" autocomplete="off" /></label>
+          <label class="form-field">확인을 위해 <strong>탈퇴합니다</strong>를 입력해 주세요.<input :value="withdrawalText" autocomplete="off" @input="syncWithdrawalText" @compositionend="syncWithdrawalText" /></label>
           <div class="button-row">
             <button class="ghost-btn" type="button" @click="showWithdrawal = false; withdrawalText = ''">취소</button>
-            <button class="danger-btn" type="button" :disabled="withdrawalText !== '탈퇴합니다'" @click="withdraw">연결 해제 및 탈퇴</button>
+            <button class="danger-btn" type="button" :disabled="!isWithdrawalConfirmed" @click="withdraw">연결 해제 및 탈퇴</button>
           </div>
         </div>
       </section>

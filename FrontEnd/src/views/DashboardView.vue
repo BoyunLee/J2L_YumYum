@@ -60,7 +60,7 @@
           </div>
           <div class="list-stack small-gap">
             <article v-for="notification in dashboardNotifications" :key="notification.id" class="notice-strip" :class="notification.type">
-              <svg viewBox="0 0 24 24"><path :d="iconPath(notification.type === 'recipe' ? 'chef' : 'alert')" /></svg>
+              <svg viewBox="0 0 24 24"><path :d="iconPath(notification.type === 'notice' ? 'bell' : 'alert')" /></svg>
               <p>{{ notification.message }}</p>
             </article>
           </div>

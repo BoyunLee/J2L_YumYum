@@ -69,8 +69,6 @@ public class TokenProvider {
             List<String> authorities = List.of("ROLE_" + user.getRole());
             Date now = new Date();
 
-            log.info("Generating token for userId={}, authorities={}, expiry={}", user.getId(), authorities, expiry);
-
             return Jwts.builder()
                     .header()
                         .type("JWT")
@@ -83,7 +81,7 @@ public class TokenProvider {
                     .signWith(getSigningKey())
                     .compact();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.debug("Failed to generate token", e);
             throw new BusinessException(ExceptionType.GENERATE_TOKEN_ERROR);
         }
     }
