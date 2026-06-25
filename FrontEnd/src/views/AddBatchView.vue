@@ -284,15 +284,21 @@ function resetForms() {
   addForms.value = [createFormEntry()]
 }
 
+function quantityText(form: InventoryForm) {
+  return String(form.quantity ?? '').trim()
+}
+
 function hasFormContent(form: InventoryForm) {
-  return Boolean(form.name.trim() || form.quantity.trim() || form.expiryDate.trim() || form.memo.trim())
+  return Boolean(form.name.trim() || quantityText(form) || form.expiryDate.trim() || form.memo.trim())
 }
 
 function isCompleteForm(form: InventoryForm) {
+  const quantity = quantityText(form)
+
   return Boolean(
     form.name.trim()
-    && form.quantity.trim()
-    && Number(form.quantity) > 0
+    && quantity
+    && Number(quantity) > 0
     && form.expiryDate
     && form.unit
     && form.location

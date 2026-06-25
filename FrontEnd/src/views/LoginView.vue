@@ -17,7 +17,7 @@ const providers: { id: OAuthProvider; label: string; className: string }[] = [
     <section class="login-card" aria-labelledby="login-title">
       <div class="login-brand" aria-hidden="true">🥗</div>
       <p class="login-eyebrow">우리 집 식재료 도우미</p>
-      <h1 id="login-title">냠냠에 오신 것을 환영해요</h1>
+      <h1 id="login-title">Mealog에 오신 것을<br/>환영해요</h1>
       <p class="login-description">
         소셜 계정으로 간편하게 로그인하고<br />냉장고 속 재료를 알뜰하게 관리해 보세요.
       </p>

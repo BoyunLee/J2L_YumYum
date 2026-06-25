@@ -3,9 +3,13 @@
     <div class="container header-inner">
       <button class="brand" type="button" @click="store.go('dashboard')">
         <span class="brand-icon">
-          <svg viewBox="0 0 24 24"><path :d="iconPath('package')" /></svg>
+          <img
+            src="/mealog_logo.png"
+            alt="Mealog"
+            style="width: 24px; height: 24px; object-fit: contain;"
+          />
         </span>
-        <span>냉장고 관리</span>
+        <span>Mealog</span>
       </button>
 
       <div class="header-actions">

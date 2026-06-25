@@ -25,7 +25,7 @@ export interface InventoryItem {
 export interface InventoryForm {
   name: string
   category: Category
-  quantity: string
+  quantity: string | number
   unit: string
   expiryDate: string
   location: string
@@ -237,19 +237,6 @@ export const useFridgeStore = defineStore('fridge', () => {
     })
     const addedItems = items.map(toInventoryItem)
     inventory.value = [...addedItems.slice().reverse(), ...inventory.value]
-    const addedCount = addedItems.length
-    const firstItemName = forms[0]?.name.trim() || '상품'
-
-    notifications.value.unshift({
-      id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
-      type: 'inventory',
-      title: addedCount > 1 ? '상품 일괄 등록 완료' : '상품 추가 완료',
-      message: addedCount > 1
-        ? `${addedCount}개의 상품을 한 번에 등록했습니다.`
-        : `${firstItemName} 재고가 추가되었습니다.`,
-      time: new Date().toLocaleString('sv-SE'),
-      read: false,
-    })
     currentView.value = 'inventory'
   }
 
@@ -346,17 +333,6 @@ export const useFridgeStore = defineStore('fridge', () => {
         ...recipe,
         id: saved.mealLogItemIds[index] ?? recipe.id,
       }))
-      const firstRecipe = recipes.value[0]
-      if (firstRecipe) {
-        notifications.value.unshift({
-          id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
-          type: 'recipe',
-          title: '?덈줈??AI ?덉떆??異붿쿇',
-          message: `?꾩옱 蹂댁쑀???щ즺濡?'${firstRecipe.name}'??瑜? 異붿쿇?댁슂.`,
-          time: new Date().toLocaleString('sv-SE'),
-          read: false,
-        })
-      }
     } catch (error) {
       recommendationErrorCode = error instanceof DOMException && error.name === 'AbortError' ? 'TIMEOUT' : 'REQUEST_FAILED'
       const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'
