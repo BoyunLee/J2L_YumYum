@@ -160,7 +160,12 @@ main {
   border-radius: 1.35rem;
   background: var(--green-soft);
   font-size: 2.25rem;
-  transform: rotate(-3deg);
+}
+
+.login-brand img {
+  width: 3.75rem;
+  height: 3.75rem;
+  object-fit: contain;
 }
 
 .login-eyebrow {

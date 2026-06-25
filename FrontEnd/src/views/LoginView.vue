@@ -15,7 +15,9 @@ const providers: { id: OAuthProvider; label: string; className: string }[] = [
 <template>
   <main class="login-page">
     <section class="login-card" aria-labelledby="login-title">
-      <div class="login-brand" aria-hidden="true">🥗</div>
+      <div class="login-brand" aria-hidden="true">
+        <img src="/mealog_logo.png" alt="" />
+      </div>
       <p class="login-eyebrow">우리 집 식재료 도우미</p>
       <h1 id="login-title">Mealog에 오신 것을<br/>환영해요</h1>
       <p class="login-description">
