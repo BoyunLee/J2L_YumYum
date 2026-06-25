@@ -237,19 +237,6 @@ export const useFridgeStore = defineStore('fridge', () => {
     })
     const addedItems = items.map(toInventoryItem)
     inventory.value = [...addedItems.slice().reverse(), ...inventory.value]
-    const addedCount = addedItems.length
-    const firstItemName = forms[0]?.name.trim() || '상품'
-
-    notifications.value.unshift({
-      id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
-      type: 'inventory',
-      title: addedCount > 1 ? '상품 일괄 등록 완료' : '상품 추가 완료',
-      message: addedCount > 1
-        ? `${addedCount}개의 상품을 한 번에 등록했습니다.`
-        : `${firstItemName} 재고가 추가되었습니다.`,
-      time: new Date().toLocaleString('sv-SE'),
-      read: false,
-    })
     currentView.value = 'inventory'
   }
 
