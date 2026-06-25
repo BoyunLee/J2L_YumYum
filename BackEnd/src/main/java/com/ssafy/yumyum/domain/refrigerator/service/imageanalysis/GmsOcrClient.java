@@ -66,7 +66,7 @@ public class GmsOcrClient {
             - storageLocation: return only when the package explicitly indicates 냉장/냉동/실온 or the item is unmistakably frozen.
               Use REFRIGERATOR, FREEZER, ROOM_TEMPERATURE only.
               If not explicit, return null.
-            - memo: short Korean note with only reliable extra facts visible in the image, such as brand, 보관방법 문구, 소비기한 표기 문구, or "영수증 인식" and the selected receipt line. No speculation.
+            - memo: default to null. Fill only when there is important extra context visible in the image that is not captured by other fields and the user should review it, such as special storage/use warnings, ambiguous receipt context, or a label issue. Do not repeat the product name, brand, category, storage, quantity, expiration date, price, or rawText. If filled, use a short Korean note. No speculation.
             - rawText: short OCR text snippet of the most important visible package text, preserving original language as much as possible.
             - detected: true only when a meaningful product package or label is actually readable.
             - confidence: number between 0 and 1 reflecting extraction confidence.

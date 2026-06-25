@@ -54,7 +54,7 @@ public class GmsOcrTextClient {
               FREEZER when the text says \uB0C9\uB3D9 or \uB0C9\uB3D9\uBCF4\uAD00, or when the product is clearly frozen such as ice cream, frozen dumplings, frozen pizza, frozen meat, or frozen seafood.
               ROOM_TEMPERATURE when the text says \uC2E4\uC628, \uC0C1\uC628, \uC2E4\uC628\uBCF4\uAD00, or \uC0C1\uC628\uBCF4\uAD00, or when the product is clearly shelf-stable such as canned food, ramen, snacks, cereal, unopened bottled drinks, sauce, or seasoning.
               If signals conflict or stay ambiguous, return null.
-            - memo: short Korean note with only reliable facts visible in the OCR text.
+            - memo: default to null. Fill only when there is important extra context visible in the OCR text that is not captured by other fields and the user should review it, such as special storage/use warnings, ambiguous receipt context, or a label issue. Do not repeat the product name, brand, category, storage, quantity, expiration date, price, or rawText. If filled, use a short Korean note.
             - rawText: short OCR snippet most relevant to the extracted item.
             - detected: true only when a meaningful grocery item can actually be identified from OCR text.
             - confidence: number between 0 and 1.
@@ -97,7 +97,7 @@ public class GmsOcrTextClient {
             - expirationDate: return only if a full explicit date is present and unambiguous. Convert to YYYY-MM-DD.
             - storageLocation: return only when OCR text explicitly indicates 냉장, 냉동, 실온, or the item is unmistakably frozen.
               Use REFRIGERATOR, FREEZER, ROOM_TEMPERATURE only.
-            - memo: short Korean note with only reliable extra facts visible in the OCR text, such as brand, 보관 방법, 소비기한 문구, or receipt item context.
+            - memo: default to null. Fill only when there is important extra context visible in the OCR text that is not captured by other fields and the user should review it, such as special storage/use warnings, ambiguous receipt context, or a label issue. Do not repeat the product name, brand, category, storage, quantity, expiration date, price, or rawText. If filled, use a short Korean note.
             - rawText: short OCR snippet most relevant to the extracted item.
             - detected: true only when a meaningful grocery item can actually be identified from OCR text.
             - confidence: number between 0 and 1 reflecting extraction confidence.
