@@ -54,11 +54,10 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/user/oauth2/**").permitAll()
                         .requestMatchers("/api/admin/auth/login").permitAll()
+                        .requestMatchers("/api/users/token/refresh").permitAll()
                         .requestMatchers("/api/admin/**").hasAnyRole("SUPER_ADMIN", "OPERATOR")
                         .requestMatchers("/api/users/me/onboarding").hasRole("GUEST")
                         .requestMatchers("/api/**").hasRole("USER")
-                        // .requestMatchers("").permitAll()
-                        // .anyRequest().denyAll()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(configure ->

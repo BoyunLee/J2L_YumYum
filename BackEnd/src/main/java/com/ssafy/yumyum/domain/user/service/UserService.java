@@ -10,12 +10,15 @@ import com.ssafy.yumyum.domain.user.dto.UserOnboardingRequest;
 import com.ssafy.yumyum.domain.user.dto.UserOnboardingResponse;
 import com.ssafy.yumyum.domain.user.dto.UserProfileResponse;
 import com.ssafy.yumyum.domain.user.dto.UserProfileUpdateRequest;
+import com.ssafy.yumyum.domain.user.dto.TokenRefreshResponse;
 import com.ssafy.yumyum.domain.user.entity.User;
 import com.ssafy.yumyum.domain.user.entity.UserRole;
 import com.ssafy.yumyum.global.exception.BusinessException;
 import com.ssafy.yumyum.global.exception.ExceptionType;
+import com.ssafy.yumyum.global.security.jwt.TokenType;
 import com.ssafy.yumyum.global.security.jwt.TokenProvider;
 
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -67,6 +70,21 @@ public class UserService {
 
         user.setRole(UserRole.USER);
         return new UserOnboardingResponse(
+                tokenProvider.generateAccessToken(user),
+                tokenProvider.generateRefreshToken(user),
+                user.getRole().name()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public TokenRefreshResponse refreshAccessToken(String refreshToken) {
+        tokenProvider.validToken(refreshToken, TokenType.REFRESH, null);
+
+        Claims claims = tokenProvider.getClaims(refreshToken);
+        Long userId = Long.valueOf(claims.getSubject());
+        User user = findUser(userId);
+
+        return new TokenRefreshResponse(
                 tokenProvider.generateAccessToken(user),
                 tokenProvider.generateRefreshToken(user),
                 user.getRole().name()

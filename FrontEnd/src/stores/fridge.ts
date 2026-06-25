@@ -195,10 +195,9 @@ export const useFridgeStore = defineStore('fridge', () => {
 
   async function apiRequest<T>(path: string, options: RequestInit = {}) {
     const isMultipart = options.body instanceof FormData
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await auth.authorizedFetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
-        Authorization: `Bearer ${auth.accessToken}`,
         ...(options.body && !isMultipart ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers,
       },
