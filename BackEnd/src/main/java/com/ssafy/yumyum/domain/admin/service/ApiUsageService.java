@@ -44,14 +44,25 @@ public class ApiUsageService {
         Map<LocalDateTime, Map<String, Long>> grouped = new HashMap<>();
         long total = 0;
         long successful = 0;
+        long ocrCalls = 0;
+        long barcodeCalls = 0;
+        long recipeRecommendationCalls = 0;
         for (ApiUsageAggregate aggregate : aggregates) {
+            long callCount = aggregate.getCallCount() == null ? 0 : aggregate.getCallCount();
             grouped.computeIfAbsent(aggregate.getHour(), ignored -> new HashMap<>())
-                    .put(aggregate.getApiType(), aggregate.getCallCount());
-            total += aggregate.getCallCount();
-            successful += aggregate.getSuccessCount();
+                    .put(aggregate.getApiType(), callCount);
+            total += callCount;
+            successful += aggregate.getSuccessCount() == null ? 0 : aggregate.getSuccessCount();
+            switch (aggregate.getApiType()) {
+                case OCR -> ocrCalls += callCount;
+                case BARCODE -> barcodeCalls += callCount;
+                case RECIPE_RECOMMENDATION -> recipeRecommendationCalls += callCount;
+                default -> {
+                }
+            }
         }
 
-        LocalDateTime end = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
+        LocalDateTime end = currentDatabaseHour();
         List<ApiUsagePoint> points = IntStream.range(0, hours)
                 .mapToObj(offset -> end.minusHours(hours - 1L - offset))
                 .map(hour -> {
@@ -61,6 +72,18 @@ public class ApiUsageService {
                             values.getOrDefault(RECIPE_RECOMMENDATION, 0L));
                 })
                 .toList();
-        return new ApiUsageResponse(hours, total, successful, points);
+        return new ApiUsageResponse(
+                hours,
+                total,
+                successful,
+                ocrCalls,
+                barcodeCalls,
+                recipeRecommendationCalls,
+                points);
+    }
+
+    private LocalDateTime currentDatabaseHour() {
+        LocalDateTime databaseHour = adminDao.findCurrentDatabaseHour();
+        return databaseHour == null ? LocalDateTime.now().truncatedTo(ChronoUnit.HOURS) : databaseHour;
     }
 }

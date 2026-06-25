@@ -52,6 +52,9 @@ export interface ApiUsageData {
   hours: number
   totalCalls: number
   successfulCalls: number
+  ocrCalls: number
+  barcodeCalls: number
+  recipeRecommendationCalls: number
   points: ApiUsagePoint[]
 }
 

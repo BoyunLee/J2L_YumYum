@@ -1,5 +1,6 @@
 package com.ssafy.yumyum.domain.admin.dao;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +33,7 @@ public interface AdminDao {
     List<RecentUser> findRecentUsers(@Param("limit") int limit);
 
     int insertApiUsageLog(ApiUsageLog log);
+    LocalDateTime findCurrentDatabaseHour();
     List<ApiUsageAggregate> findHourlyApiUsage(@Param("hours") int hours);
 
     int insertBatchHistory(BatchJobHistory history);

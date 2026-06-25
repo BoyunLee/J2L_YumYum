@@ -56,6 +56,9 @@ public final class AdminDtos {
             int hours,
             long totalCalls,
             long successfulCalls,
+            long ocrCalls,
+            long barcodeCalls,
+            long recipeRecommendationCalls,
             List<ApiUsagePoint> points) {
     }
 

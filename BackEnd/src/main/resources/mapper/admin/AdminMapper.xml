@@ -52,6 +52,9 @@
         INSERT INTO api_usage_logs (user_id, api_type, success, duration_ms, error_code)
         VALUES (#{userId}, #{apiType}, #{success}, #{durationMs}, #{errorCode})
     </insert>
+    <select id="findCurrentDatabaseHour" resultType="java.time.LocalDateTime">
+        SELECT TIMESTAMP(CURRENT_DATE(), MAKETIME(HOUR(NOW()), 0, 0))
+    </select>
     <select id="findHourlyApiUsage" resultType="com.ssafy.yumyum.domain.admin.dto.ApiUsageAggregate">
         SELECT TIMESTAMP(DATE(created_at), MAKETIME(HOUR(created_at), 0, 0)) AS hour,
                api_type AS apiType, COUNT(*) AS callCount, SUM(success = TRUE) AS successCount
