@@ -4,7 +4,7 @@ use yumyum;
 
 -- =========================================================
 -- FOOD NUTRITION
--- 기존 테이블 유지 + 바코드 컬럼 추가
+-- 영양 정보 기본 테이블
 -- =========================================================
 
 CREATE TABLE IF NOT EXISTS food_nutrition (
@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS food_nutrition (
     saturated_fat_g   DECIMAL(10,2) NULL COMMENT '포화지방산(g)',
     trans_fat_g       DECIMAL(10,2) NULL COMMENT '트랜스지방산(g)',
     caffeine_mg       DECIMAL(10,2) NULL COMMENT '카페인(mg)',
-    barcode           VARCHAR(50) NULL COMMENT '대표 바코드',
     PRIMARY KEY (food_code),
     FULLTEXT KEY idx_ft_food_name (food_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='음식 영양정보 테이블';

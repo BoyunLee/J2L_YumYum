@@ -5,10 +5,11 @@ import { requestRecipeRecommendations } from '../api/recipeRecommendation'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
-export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
+export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'meals' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
 export type Category = 'dairy' | 'meat' | 'vegetable' | 'fruit' | 'etc'
 export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory' | 'notice'
 export type ImageAnalysisType = 'OCR' | 'BARCODE'
+export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK'
 
 export interface InventoryItem {
   id: number
@@ -78,6 +79,55 @@ interface ApiNotification {
   read: boolean
 }
 
+interface ApiMealFoodSuggestion {
+  foodCode: string
+  name: string
+  category: string | null
+  baseAmount: string | null
+  calories: number | null
+  protein: number | null
+  carbohydrate: number | null
+  fat: number | null
+}
+
+interface ApiMealLogItem {
+  id: number
+  foodCode: string
+  name: string
+  quantity: number
+  baseAmount: string | null
+  calories: number | null
+  protein: number | null
+  carbohydrate: number | null
+  fat: number | null
+}
+
+interface ApiMealLog {
+  id: number
+  mealType: MealType
+  date: string
+  memo: string | null
+  totalCalories: number | null
+  totalProtein: number | null
+  totalCarbohydrate: number | null
+  totalFat: number | null
+  items: ApiMealLogItem[]
+}
+
+interface ApiMealSummary {
+  date: string
+  mealCount: number | null
+  itemCount: number | null
+  totalCalories: number | null
+  totalProtein: number | null
+  totalCarbohydrate: number | null
+  totalFat: number | null
+  goalCalories: number | null
+  goalProtein: number | null
+  goalCarbohydrate: number | null
+  goalFat: number | null
+}
+
 export interface Recipe {
   id: number
   name: string
@@ -101,6 +151,65 @@ export interface NotificationItem {
   message: string
   time: string
   read: boolean
+}
+
+export interface MealFoodSuggestion {
+  foodCode: string
+  name: string
+  category: string | null
+  baseAmount: string | null
+  calories: number
+  protein: number
+  carbohydrate: number
+  fat: number
+}
+
+export interface MealLogItem {
+  id: number
+  foodCode: string
+  name: string
+  quantity: number
+  baseAmount: string | null
+  calories: number
+  protein: number
+  carbohydrate: number
+  fat: number
+}
+
+export interface MealLog {
+  id: number
+  mealType: MealType
+  date: string
+  memo: string | null
+  totalCalories: number
+  totalProtein: number
+  totalCarbohydrate: number
+  totalFat: number
+  items: MealLogItem[]
+}
+
+export interface MealSummary {
+  date: string
+  mealCount: number
+  itemCount: number
+  totalCalories: number
+  totalProtein: number
+  totalCarbohydrate: number
+  totalFat: number
+  goalCalories: number
+  goalProtein: number
+  goalCarbohydrate: number
+  goalFat: number
+}
+
+export interface SaveMealLogPayload {
+  mealType: MealType
+  date: string
+  memo: string
+  items: Array<{
+    foodCode: string
+    quantity: number
+  }>
 }
 
 const visibleNotificationTypes = new Set<NotificationType>(['expiry', 'expired', 'notice'])
@@ -138,6 +247,7 @@ const locationLabels: Record<string, string> = {
   ROOM_TEMPERATURE: '실온',
 }
 const recipeGradients = ['yellow', 'red', 'green', 'lime']
+const toNumber = (value: number | null | undefined) => Number(value ?? 0)
 
 const toRequestBody = (form: InventoryForm) => ({
   name: form.name.trim(),
@@ -161,6 +271,55 @@ const toInventoryItem = (item: ApiInventoryItem): InventoryItem => ({
   memo: item.memo ?? '',
 })
 
+const toMealFoodSuggestion = (item: ApiMealFoodSuggestion): MealFoodSuggestion => ({
+  foodCode: item.foodCode,
+  name: item.name,
+  category: item.category,
+  baseAmount: item.baseAmount,
+  calories: toNumber(item.calories),
+  protein: toNumber(item.protein),
+  carbohydrate: toNumber(item.carbohydrate),
+  fat: toNumber(item.fat),
+})
+
+const toMealLogItem = (item: ApiMealLogItem): MealLogItem => ({
+  id: item.id,
+  foodCode: item.foodCode,
+  name: item.name,
+  quantity: Number(item.quantity),
+  baseAmount: item.baseAmount,
+  calories: toNumber(item.calories),
+  protein: toNumber(item.protein),
+  carbohydrate: toNumber(item.carbohydrate),
+  fat: toNumber(item.fat),
+})
+
+const toMealLog = (item: ApiMealLog): MealLog => ({
+  id: item.id,
+  mealType: item.mealType,
+  date: item.date,
+  memo: item.memo,
+  totalCalories: toNumber(item.totalCalories),
+  totalProtein: toNumber(item.totalProtein),
+  totalCarbohydrate: toNumber(item.totalCarbohydrate),
+  totalFat: toNumber(item.totalFat),
+  items: item.items.map(toMealLogItem),
+})
+
+const toMealSummary = (item: ApiMealSummary): MealSummary => ({
+  date: item.date,
+  mealCount: Number(item.mealCount ?? 0),
+  itemCount: Number(item.itemCount ?? 0),
+  totalCalories: toNumber(item.totalCalories),
+  totalProtein: toNumber(item.totalProtein),
+  totalCarbohydrate: toNumber(item.totalCarbohydrate),
+  totalFat: toNumber(item.totalFat),
+  goalCalories: toNumber(item.goalCalories),
+  goalProtein: toNumber(item.goalProtein),
+  goalCarbohydrate: toNumber(item.goalCarbohydrate),
+  goalFat: toNumber(item.goalFat),
+})
+
 export const useFridgeStore = defineStore('fridge', () => {
   const auth = useAuthStore()
   const currentView = ref<ViewName>('dashboard')
@@ -177,6 +336,11 @@ export const useFridgeStore = defineStore('fridge', () => {
   const recipes = ref<Recipe[]>([])
 
   const notifications = ref<NotificationItem[]>([])
+  const mealLogs = ref<MealLog[]>([])
+  const mealSummary = ref<MealSummary | null>(null)
+  const isLoadingMealLogs = ref(false)
+  const isSavingMealLog = ref(false)
+  const mealLogError = ref('')
 
   const inventoryWithStatus = computed(() =>
     inventory.value.map((item) => ({ ...item, daysLeft: daysBetween(item.expiryDate) })),
@@ -294,6 +458,80 @@ export const useFridgeStore = defineStore('fridge', () => {
     }
   }
 
+  async function searchMealFoods(query: string, limit = 8) {
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) return []
+
+    const params = new URLSearchParams({
+      q: trimmedQuery,
+      limit: String(limit),
+    })
+    const items = await apiRequest<ApiMealFoodSuggestion[]>(`/api/meal-logs/foods/search?${params.toString()}`)
+    return items.map(toMealFoodSuggestion)
+  }
+
+  async function refreshMealDashboard(date: string) {
+    isLoadingMealLogs.value = true
+    mealLogError.value = ''
+    try {
+      const params = new URLSearchParams({ date })
+      const [logs, summary] = await Promise.all([
+        apiRequest<ApiMealLog[]>(`/api/meal-logs?${params.toString()}`),
+        apiRequest<ApiMealSummary>(`/api/meal-logs/summary?${params.toString()}`),
+      ])
+      mealLogs.value = logs.map(toMealLog)
+      mealSummary.value = toMealSummary(summary)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 불러오지 못했습니다.'
+      throw error
+    } finally {
+      isLoadingMealLogs.value = false
+    }
+  }
+
+  async function loadMealLogs(date: string) {
+    await refreshMealDashboard(date)
+  }
+
+  async function saveMealLog(payload: SaveMealLogPayload) {
+    if (isSavingMealLog.value) return null
+
+    isSavingMealLog.value = true
+    mealLogError.value = ''
+    try {
+      const created = await apiRequest<ApiMealLog>('/api/meal-logs', {
+        method: 'POST',
+        body: JSON.stringify({
+          mealType: payload.mealType,
+          date: payload.date,
+          memo: payload.memo.trim() || null,
+          items: payload.items.map((item) => ({
+            foodCode: item.foodCode,
+            quantity: item.quantity,
+          })),
+        }),
+      })
+      await refreshMealDashboard(payload.date)
+      return toMealLog(created)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 저장하지 못했습니다.'
+      throw error
+    } finally {
+      isSavingMealLog.value = false
+    }
+  }
+
+  async function deleteMealLog(id: number, date: string) {
+    mealLogError.value = ''
+    try {
+      await apiRequest<void>(`/api/meal-logs/${id}`, { method: 'DELETE' })
+      await refreshMealDashboard(date)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 삭제하지 못했습니다.'
+      throw error
+    }
+  }
+
   async function recommendRecipes(force = false) {
     if (isRecommendingRecipes.value) return
     const inventoryKey = inventory.value
@@ -406,7 +644,12 @@ export const useFridgeStore = defineStore('fridge', () => {
     hasRequestedRecipes,
     inventoryWithStatus,
     isLoadingSavedRecipes,
+    isLoadingMealLogs,
     isRecommendingRecipes,
+    isSavingMealLog,
+    mealLogError,
+    mealLogs,
+    mealSummary,
     notifications,
     recentInventory,
     recipes,
@@ -418,8 +661,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     addInventory,
     analyzeInventoryImage,
     deleteInventory,
+    deleteMealLog,
     deleteNotification,
     go,
+    loadMealLogs,
     markAllAsRead,
     markAsRead,
     loadInventory,
@@ -428,6 +673,9 @@ export const useFridgeStore = defineStore('fridge', () => {
     openInventory,
     openRecipe,
     recommendRecipes,
+    refreshMealDashboard,
+    saveMealLog,
+    searchMealFoods,
     toggleFavoriteRecipe,
     updateInventory,
   }

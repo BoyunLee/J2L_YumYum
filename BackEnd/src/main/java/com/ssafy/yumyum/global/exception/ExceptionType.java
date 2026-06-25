@@ -48,6 +48,10 @@ public enum ExceptionType {
     // refrigerator
     REFRIGERATOR_ITEM_NOT_FOUND(NOT_FOUND, "R001", "존재하지 않는 냉장고 재고입니다."),
 
+    // meal
+    FOOD_NUTRITION_NOT_FOUND(NOT_FOUND, "M001", "존재하지 않는 음식 정보입니다."),
+    MEAL_LOG_NOT_FOUND(NOT_FOUND, "M002", "존재하지 않는 식단 기록입니다."),
+
     // file
     EMPTY_IMAGE_FILE(BAD_REQUEST, "F001", "분석할 이미지 파일을 선택해 주세요."),
     UNSUPPORTED_IMAGE_TYPE(UNSUPPORTED_MEDIA_TYPE, "F002", "지원하지 않는 이미지 형식입니다."),

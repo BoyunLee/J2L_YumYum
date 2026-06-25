@@ -14,6 +14,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./BackEnd/src/main/resources/sql/yumyum.sql:/docker-entrypoint-initdb.d/01-yumyum.sql:ro
+      - ./BackEnd/src/main/resources/sql/SSAFY_COACH_Dump.sql:/docker-entrypoint-initdb.d/02-food-nutrition-data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent || exit 1"]
       interval: 10s
