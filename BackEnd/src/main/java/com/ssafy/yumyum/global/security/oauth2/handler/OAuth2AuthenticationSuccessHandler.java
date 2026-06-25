@@ -43,16 +43,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         String targetUrl = determineTargetUrl(request, response, authentication);
 
-        log.info("determineTargetUrl={}", targetUrl);
-
         if (response.isCommitted()) {
-            log.debug("Response has already been committed. Unable to redirect to {}", targetUrl);
+            log.debug("Response has already been committed. Unable to redirect after OAuth success.");
             return;
         }
 
         clearAuthenticationAttributes(request, response);
 
-        log.info("after clear Authentication: targetUrl={}", targetUrl);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
@@ -77,7 +74,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             String providerUserId = principal.getUserInfo().getId();
             OAuth2Provider provider = principal.getUserInfo().getProvider();
 
-            log.info("providerUserId={}, provider={}", providerUserId, provider);
+            log.info("OAuth login callback received. provider={}", provider);
 
             AtomicReference<Boolean> isNewUser = new AtomicReference<>(false);
 
@@ -104,13 +101,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             // TODO: 리프레시 토큰 저장
 
-            log.info("userId={}, provider={}, providerId={}", user.getId(), user.getProvider(), user.getProviderUserId());
-
-            log.info("email={}, nickname={}, accessToken={}",
-                    principal.getUserInfo().getEmail(),
-                    principal.getUserInfo().getNickname(),
-                    principal.getUserInfo().getAccessToken()
-            );
+            log.info("OAuth login completed. userId={}, provider={}, isNewUser={}", user.getId(), user.getProvider(), isNewUser.get());
 
             return UriComponentsBuilder.fromUriString(targetUrl)
                     .queryParam("is_new_user", isNewUser)

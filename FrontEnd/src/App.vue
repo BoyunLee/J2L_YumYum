@@ -8,6 +8,7 @@ import DashboardView from './views/DashboardView.vue'
 import InventoryView from './views/InventoryView.vue'
 import AddView from './views/AddBatchView.vue'
 import DetailView from './views/DetailView.vue'
+import MealLogsView from './views/MealLogsView.vue'
 import RecipesView from './views/RecipesView.vue'
 import RecipeDetailView from './views/RecipeDetailView.vue'
 import NotificationsView from './views/NotificationsView.vue'
@@ -48,6 +49,7 @@ onMounted(() => {
       <InventoryView v-else-if="currentView === 'inventory'" />
       <AddView v-else-if="currentView === 'add'" />
       <DetailView v-else-if="currentView === 'detail'" />
+      <MealLogsView v-else-if="currentView === 'meals'" />
       <RecipesView v-else-if="currentView === 'recipes'" />
       <RecipeDetailView v-else-if="currentView === 'recipeDetail'" />
       <NotificationsView v-else-if="currentView === 'notifications'" />

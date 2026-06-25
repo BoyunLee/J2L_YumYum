@@ -11,12 +11,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 import javax.sql.DataSource;
 
 @Configuration
-@PropertySource("classpath:/application.properties")
 @MapperScan(basePackages = "com.ssafy.yumyum.domain", annotationClass = Mapper.class)
 public class DBConfiguration {
 	

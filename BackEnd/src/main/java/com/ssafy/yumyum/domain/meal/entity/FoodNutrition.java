@@ -7,16 +7,13 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class MealLogItem {
-    private Long id;
-    private Long mealLogId;
-    private String foodCode;
+public class FoodNutrition {
+    private String code;
     private String name;
-    private BigDecimal quantity;
-    private String unit;
-    private String recipePayload;
+    private String category;
+    private String weight;
     private BigDecimal energyKcal;
     private BigDecimal proteinG;
-    private BigDecimal carbohydrateG;
     private BigDecimal fatG;
+    private BigDecimal carbohydrateG;
 }

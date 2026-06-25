@@ -1,14 +1,14 @@
 ﻿import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
-import { requestRecipeRecommendations } from '../api/recipeRecommendation'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
-export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
+export type ViewName = 'dashboard' | 'inventory' | 'add' | 'detail' | 'meals' | 'recipes' | 'recipeDetail' | 'notifications' | 'myPage'
 export type Category = 'dairy' | 'meat' | 'vegetable' | 'fruit' | 'etc'
 export type NotificationType = 'expiry' | 'expired' | 'recipe' | 'inventory' | 'notice'
 export type ImageAnalysisType = 'OCR' | 'BARCODE'
+export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK'
 
 export interface InventoryItem {
   id: number
@@ -78,6 +78,55 @@ interface ApiNotification {
   read: boolean
 }
 
+interface ApiMealFoodSuggestion {
+  foodCode: string
+  name: string
+  category: string | null
+  baseAmount: string | null
+  calories: number | null
+  protein: number | null
+  carbohydrate: number | null
+  fat: number | null
+}
+
+interface ApiMealLogItem {
+  id: number
+  foodCode: string
+  name: string
+  quantity: number
+  baseAmount: string | null
+  calories: number | null
+  protein: number | null
+  carbohydrate: number | null
+  fat: number | null
+}
+
+interface ApiMealLog {
+  id: number
+  mealType: MealType
+  date: string
+  memo: string | null
+  totalCalories: number | null
+  totalProtein: number | null
+  totalCarbohydrate: number | null
+  totalFat: number | null
+  items: ApiMealLogItem[]
+}
+
+interface ApiMealSummary {
+  date: string
+  mealCount: number | null
+  itemCount: number | null
+  totalCalories: number | null
+  totalProtein: number | null
+  totalCarbohydrate: number | null
+  totalFat: number | null
+  goalCalories: number | null
+  goalProtein: number | null
+  goalCarbohydrate: number | null
+  goalFat: number | null
+}
+
 export interface Recipe {
   id: number
   name: string
@@ -101,6 +150,65 @@ export interface NotificationItem {
   message: string
   time: string
   read: boolean
+}
+
+export interface MealFoodSuggestion {
+  foodCode: string
+  name: string
+  category: string | null
+  baseAmount: string | null
+  calories: number
+  protein: number
+  carbohydrate: number
+  fat: number
+}
+
+export interface MealLogItem {
+  id: number
+  foodCode: string
+  name: string
+  quantity: number
+  baseAmount: string | null
+  calories: number
+  protein: number
+  carbohydrate: number
+  fat: number
+}
+
+export interface MealLog {
+  id: number
+  mealType: MealType
+  date: string
+  memo: string | null
+  totalCalories: number
+  totalProtein: number
+  totalCarbohydrate: number
+  totalFat: number
+  items: MealLogItem[]
+}
+
+export interface MealSummary {
+  date: string
+  mealCount: number
+  itemCount: number
+  totalCalories: number
+  totalProtein: number
+  totalCarbohydrate: number
+  totalFat: number
+  goalCalories: number
+  goalProtein: number
+  goalCarbohydrate: number
+  goalFat: number
+}
+
+export interface SaveMealLogPayload {
+  mealType: MealType
+  date: string
+  memo: string
+  items: Array<{
+    foodCode: string
+    quantity: number
+  }>
 }
 
 const visibleNotificationTypes = new Set<NotificationType>(['expiry', 'expired', 'notice'])
@@ -138,6 +246,7 @@ const locationLabels: Record<string, string> = {
   ROOM_TEMPERATURE: '실온',
 }
 const recipeGradients = ['yellow', 'red', 'green', 'lime']
+const toNumber = (value: number | null | undefined) => Number(value ?? 0)
 
 const toRequestBody = (form: InventoryForm) => ({
   name: form.name.trim(),
@@ -161,6 +270,55 @@ const toInventoryItem = (item: ApiInventoryItem): InventoryItem => ({
   memo: item.memo ?? '',
 })
 
+const toMealFoodSuggestion = (item: ApiMealFoodSuggestion): MealFoodSuggestion => ({
+  foodCode: item.foodCode,
+  name: item.name,
+  category: item.category,
+  baseAmount: item.baseAmount,
+  calories: toNumber(item.calories),
+  protein: toNumber(item.protein),
+  carbohydrate: toNumber(item.carbohydrate),
+  fat: toNumber(item.fat),
+})
+
+const toMealLogItem = (item: ApiMealLogItem): MealLogItem => ({
+  id: item.id,
+  foodCode: item.foodCode,
+  name: item.name,
+  quantity: Number(item.quantity),
+  baseAmount: item.baseAmount,
+  calories: toNumber(item.calories),
+  protein: toNumber(item.protein),
+  carbohydrate: toNumber(item.carbohydrate),
+  fat: toNumber(item.fat),
+})
+
+const toMealLog = (item: ApiMealLog): MealLog => ({
+  id: item.id,
+  mealType: item.mealType,
+  date: item.date,
+  memo: item.memo,
+  totalCalories: toNumber(item.totalCalories),
+  totalProtein: toNumber(item.totalProtein),
+  totalCarbohydrate: toNumber(item.totalCarbohydrate),
+  totalFat: toNumber(item.totalFat),
+  items: item.items.map(toMealLogItem),
+})
+
+const toMealSummary = (item: ApiMealSummary): MealSummary => ({
+  date: item.date,
+  mealCount: Number(item.mealCount ?? 0),
+  itemCount: Number(item.itemCount ?? 0),
+  totalCalories: toNumber(item.totalCalories),
+  totalProtein: toNumber(item.totalProtein),
+  totalCarbohydrate: toNumber(item.totalCarbohydrate),
+  totalFat: toNumber(item.totalFat),
+  goalCalories: toNumber(item.goalCalories),
+  goalProtein: toNumber(item.goalProtein),
+  goalCarbohydrate: toNumber(item.goalCarbohydrate),
+  goalFat: toNumber(item.goalFat),
+})
+
 export const useFridgeStore = defineStore('fridge', () => {
   const auth = useAuthStore()
   const currentView = ref<ViewName>('dashboard')
@@ -177,6 +335,11 @@ export const useFridgeStore = defineStore('fridge', () => {
   const recipes = ref<Recipe[]>([])
 
   const notifications = ref<NotificationItem[]>([])
+  const mealLogs = ref<MealLog[]>([])
+  const mealSummary = ref<MealSummary | null>(null)
+  const isLoadingMealLogs = ref(false)
+  const isSavingMealLog = ref(false)
+  const mealLogError = ref('')
 
   const inventoryWithStatus = computed(() =>
     inventory.value.map((item) => ({ ...item, daysLeft: daysBetween(item.expiryDate) })),
@@ -207,10 +370,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     if (!response.ok) {
       if (response.status === 401) {
         auth.expireSession()
-        throw new Error('濡쒓렇?몄씠 留뚮즺?섏뿀?듬땲?? ?ㅼ떆 濡쒓렇?명빐 二쇱꽭??')
+        throw new Error('로그인이 만료되었습니다. 다시 로그인해 주세요.')
       }
-      if (response.status === 403) throw new Error('?ш퀬瑜?愿由ы븷 沅뚰븳???놁뒿?덈떎.')
-      throw new Error(body?.message ?? body?.msg ?? `?붿껌??泥섎━?섏? 紐삵뻽?듬땲?? (HTTP ${response.status})`)
+      if (response.status === 403) throw new Error('요청을 처리할 권한이 없습니다.')
+      throw new Error(body?.message ?? body?.msg ?? `요청을 처리하지 못했습니다. (HTTP ${response.status})`)
     }
     return body?.data as T
   }
@@ -287,10 +450,84 @@ export const useFridgeStore = defineStore('fridge', () => {
     } catch (error) {
       recipeRecommendationError.value = error instanceof Error
         ? error.message
-        : '??λ맂 ?덉떆?쇰? 遺덈윭?ㅼ? 紐삵뻽?듬땲??'
+        : '저장된 레시피를 불러오지 못했습니다.'
       throw error
     } finally {
       isLoadingSavedRecipes.value = false
+    }
+  }
+
+  async function searchMealFoods(query: string, limit = 8) {
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) return []
+
+    const params = new URLSearchParams({
+      q: trimmedQuery,
+      limit: String(limit),
+    })
+    const items = await apiRequest<ApiMealFoodSuggestion[]>(`/api/meal-logs/foods/search?${params.toString()}`)
+    return items.map(toMealFoodSuggestion)
+  }
+
+  async function refreshMealDashboard(date: string) {
+    isLoadingMealLogs.value = true
+    mealLogError.value = ''
+    try {
+      const params = new URLSearchParams({ date })
+      const [logs, summary] = await Promise.all([
+        apiRequest<ApiMealLog[]>(`/api/meal-logs?${params.toString()}`),
+        apiRequest<ApiMealSummary>(`/api/meal-logs/summary?${params.toString()}`),
+      ])
+      mealLogs.value = logs.map(toMealLog)
+      mealSummary.value = toMealSummary(summary)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 불러오지 못했습니다.'
+      throw error
+    } finally {
+      isLoadingMealLogs.value = false
+    }
+  }
+
+  async function loadMealLogs(date: string) {
+    await refreshMealDashboard(date)
+  }
+
+  async function saveMealLog(payload: SaveMealLogPayload) {
+    if (isSavingMealLog.value) return null
+
+    isSavingMealLog.value = true
+    mealLogError.value = ''
+    try {
+      const created = await apiRequest<ApiMealLog>('/api/meal-logs', {
+        method: 'POST',
+        body: JSON.stringify({
+          mealType: payload.mealType,
+          date: payload.date,
+          memo: payload.memo.trim() || null,
+          items: payload.items.map((item) => ({
+            foodCode: item.foodCode,
+            quantity: item.quantity,
+          })),
+        }),
+      })
+      await refreshMealDashboard(payload.date)
+      return toMealLog(created)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 저장하지 못했습니다.'
+      throw error
+    } finally {
+      isSavingMealLog.value = false
+    }
+  }
+
+  async function deleteMealLog(id: number, date: string) {
+    mealLogError.value = ''
+    try {
+      await apiRequest<void>(`/api/meal-logs/${id}`, { method: 'DELETE' })
+      await refreshMealDashboard(date)
+    } catch (error) {
+      mealLogError.value = error instanceof Error ? error.message : '식단 기록을 삭제하지 못했습니다.'
+      throw error
     }
   }
 
@@ -305,57 +542,23 @@ export const useFridgeStore = defineStore('fridge', () => {
     isRecommendingRecipes.value = true
     hasRequestedRecipes.value = true
     recipeRecommendationError.value = ''
-    const recommendationStartedAt = performance.now()
-    let recommendationSucceeded = false
-    let recommendationErrorCode: string | null = null
     try {
-      const recommendations = await requestRecipeRecommendations(inventory.value)
-      recommendationSucceeded = true
-      recipes.value = recommendations
+      const response = await apiRequest<ApiLatestRecipeRecommendations>('/api/meal-logs/recommendations/generate', {
+        method: 'POST',
+      })
+      recipes.value = response.recipes.map((recipe, index) => ({
+        ...recipe,
+        gradient: recipeGradients[index % recipeGradients.length],
+      }))
       lastRecipeInventoryKey.value = inventoryKey
       selectedRecipeId.value = null
-      const saved = await apiRequest<{ mealLogId: number; mealLogItemIds: number[] }>('/api/meal-logs/recommendations', {
-        method: 'POST',
-        body: JSON.stringify({
-          recipes: recommendations.map((recipe) => ({
-            name: recipe.name,
-            description: recipe.description,
-            matchRate: recipe.matchRate,
-            cookTime: recipe.cookTime,
-            servings: recipe.servings,
-            difficulty: recipe.difficulty,
-            calories: recipe.calories,
-            availableIngredients: recipe.availableIngredients,
-            missingIngredients: recipe.missingIngredients,
-            steps: recipe.steps,
-            tips: recipe.tips,
-          })),
-        }),
-      })
-      recipes.value = recommendations.map((recipe, index) => ({
-        ...recipe,
-        id: saved.mealLogItemIds[index] ?? recipe.id,
-      }))
     } catch (error) {
-      recommendationErrorCode = error instanceof DOMException && error.name === 'AbortError' ? 'TIMEOUT' : 'REQUEST_FAILED'
-      const message = error instanceof Error ? error.message : '?덉떆?쇰? 異붿쿇諛쏆? 紐삵뻽?듬땲??'
+      const message = error instanceof Error ? error.message : '레시피를 추천받지 못했습니다.'
       recipeRecommendationError.value = recipes.value.length > 0
-        ? `異붿쿇 寃곌낵???쒖떆?덉?留???ν븯吏 紐삵뻽?듬땲?? ${message}`
+        ? `추천 결과는 표시했지만 새로 저장하지 못했습니다. ${message}`
         : message
       throw error
     } finally {
-      try {
-        await apiRequest<void>('/api/usage/recipe-recommendation', {
-          method: 'POST',
-          body: JSON.stringify({
-            success: recommendationSucceeded,
-            durationMs: Math.round(performance.now() - recommendationStartedAt),
-            errorCode: recommendationErrorCode,
-          }),
-        })
-      } catch {
-        // 통계 기록 실패가 사용자 레시피 요청 결과를 덮어쓰지 않도록 합니다.
-      }
       isRecommendingRecipes.value = false
     }
   }
@@ -406,7 +609,12 @@ export const useFridgeStore = defineStore('fridge', () => {
     hasRequestedRecipes,
     inventoryWithStatus,
     isLoadingSavedRecipes,
+    isLoadingMealLogs,
     isRecommendingRecipes,
+    isSavingMealLog,
+    mealLogError,
+    mealLogs,
+    mealSummary,
     notifications,
     recentInventory,
     recipes,
@@ -418,8 +626,10 @@ export const useFridgeStore = defineStore('fridge', () => {
     addInventory,
     analyzeInventoryImage,
     deleteInventory,
+    deleteMealLog,
     deleteNotification,
     go,
+    loadMealLogs,
     markAllAsRead,
     markAsRead,
     loadInventory,
@@ -428,6 +638,9 @@ export const useFridgeStore = defineStore('fridge', () => {
     openInventory,
     openRecipe,
     recommendRecipes,
+    refreshMealDashboard,
+    saveMealLog,
+    searchMealFoods,
     toggleFavoriteRecipe,
     updateInventory,
   }
