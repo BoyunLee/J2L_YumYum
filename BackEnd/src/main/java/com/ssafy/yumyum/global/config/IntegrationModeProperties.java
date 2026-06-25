@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public record IntegrationModeProperties(@Value("${integration.mode:mock}") String mode) {
+public record IntegrationModeProperties(@Value("${integration.mode:live}") String mode) {
     public boolean isMock() {
         return normalizedMode() == Mode.MOCK;
     }
@@ -21,12 +21,12 @@ public record IntegrationModeProperties(@Value("${integration.mode:mock}") Strin
 
     public Mode normalizedMode() {
         if (mode == null || mode.isBlank()) {
-            return Mode.MOCK;
+            return Mode.LIVE;
         }
         try {
             return Mode.valueOf(mode.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            return Mode.MOCK;
+            return Mode.LIVE;
         }
     }
 
