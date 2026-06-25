@@ -550,17 +550,6 @@ export const useFridgeStore = defineStore('fridge', () => {
         ...recipe,
         gradient: recipeGradients[index % recipeGradients.length],
       }))
-      const firstRecipe = recipes.value[0]
-      if (firstRecipe) {
-        notifications.value.unshift({
-          id: Math.max(...notifications.value.map((notification) => notification.id), 0) + 1,
-          type: 'recipe',
-          title: '?덈줈??AI ?덉떆??異붿쿇',
-          message: `?꾩옱 蹂댁쑀???щ즺濡?'${firstRecipe.name}'??瑜? 異붿쿇?댁슂.`,
-          time: new Date().toLocaleString('sv-SE'),
-          read: false,
-        })
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : '레시피를 추천받지 못했습니다.'
       recipeRecommendationError.value = recipes.value.length > 0
